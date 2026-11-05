@@ -178,8 +178,8 @@ export const sitePermitApi = {
     const response = await odataClient.get<PermitDeepInsertResponse>(`${ODATA_ENTITIES.PERMIT_INFO}('${key}')${query}`, { signal });
     if (!response.data?.Permit_No) throw new Error('SAP did not return the requested permit.');
     const canonicalNo = response.data.Permit_No || number;
-    const gases = await gasTesterApi.list(number, signal).catch(() => []);
-    const approvals = await permitApproverApi.getApprovals(number, signal).catch(() => []);
+    const gases = await gasTesterApi.list(number, signal);
+    const approvals = await permitApproverApi.getApprovals(number, signal);
     const auditLogs = await auditLogApi.getAuditLogs(canonicalNo, signal).catch(() => []);
     const mergedApprovals = (approvals && approvals.length > 0)
       ? approvals
@@ -245,8 +245,10 @@ export const sitePermitApi = {
     const cleanNo = permitNo.trim().replace(/^'|'$/g, '');
     const key = encodeURIComponent(literal(cleanNo)).replace(/'/g, '%27');
     const url = `${ODATA_ENTITIES.PERMIT_INFO}('${key}')`;
-    const response = await odataClient.patch<PermitInfoRecord>(url, updates, etag?.trim() ? etag.trim() : '*');
-    return response.data;
+    const response = await odataClient.patch<PermitInfoRecord>(url, updates, etag?.trim() ? etag.trim() : '*', {
+      headers: { Prefer: 'return=representation' }
+    });
+    return { ...response.data, '@odata.etag': response.data?.['@odata.etag'] || response.headers?.etag };
   },
 
   /**
@@ -258,10 +260,30 @@ export const sitePermitApi = {
     comments?: string,
     etag?: string
   ): Promise<PermitDeepInsertResponse> {
+    let currentEtag = etag;
     if (updates && Object.keys(updates).length > 0) {
-      await this.updatePermit(permitNo, updates, etag);
+      const updated = await this.updatePermit(permitNo, updates, etag);
+      currentEtag = updated['@odata.etag'];
+      // A 204 PATCH may omit the new version; read only the header before the action.
+      if (!currentEtag || currentEtag === '*') {
+        const cleanNo = permitNo.trim().replace(/^'|'$/g, '');
+        const key = encodeURIComponent(literal(cleanNo)).replace(/'/g, '%27');
+        const latest = await odataClient.get<PermitInfoRecord>(`${ODATA_ENTITIES.PERMIT_INFO}('${key}')`);
+        currentEtag = latest.data?.['@odata.etag'] || latest.headers?.etag;
+      }
+      if (!currentEtag || currentEtag === '*') {
+        throw new Error('Changes were saved, but SAP did not provide the new permit version. Refresh the permit before resubmitting.');
+      }
     }
-    return this.resubmit(permitNo, comments, etag);
+    try {
+      return await this.resubmit(permitNo, comments, currentEtag);
+    } catch (error: any) {
+      const detail = error?.response?.data?.error?.message || error?.message || 'SAP could not confirm resubmission.';
+      if (Object.keys(updates || {}).length > 0) {
+        throw new Error(`Header changes were saved, but resubmission was not confirmed. Refresh the permit before retrying. ${detail}`);
+      }
+      throw error;
+    }
   },
 
   /**

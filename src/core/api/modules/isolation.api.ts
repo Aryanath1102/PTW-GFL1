@@ -7,7 +7,7 @@ export const FALLBACK_ISOLATION_DATA: SapIsolationHeader[] = [];
 
 const getStoredPermitLinks = (): Record<string, string> => {
   try {
-    if (typeof window !== 'undefined' && window.localStorage) {
+    if (import.meta.env.DEV && typeof window !== 'undefined' && window.localStorage) {
       return JSON.parse(window.localStorage.getItem('ptw_isolation_permit_links') || '{}');
     }
   } catch {}
@@ -16,7 +16,7 @@ const getStoredPermitLinks = (): Record<string, string> => {
 
 const setStoredPermitLink = (isoNo: string, permitNo: string) => {
   try {
-    if (typeof window !== 'undefined' && window.localStorage) {
+    if (import.meta.env.DEV && typeof window !== 'undefined' && window.localStorage) {
       const map = JSON.parse(window.localStorage.getItem('ptw_isolation_permit_links') || '{}');
       if (permitNo?.trim()) {
         map[isoNo] = permitNo.trim();

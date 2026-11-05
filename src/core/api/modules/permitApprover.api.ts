@@ -344,7 +344,7 @@ export const permitApproverApi = {
       const padded10 = numOnly.padStart(10, '0');
       const ptwFormatted = `PTW${padded7}`;
       const candidates = Array.from(new Set([raw, numOnly, padded7, padded10, ptwFormatted].filter(Boolean)));
-      const filterStr = candidates.map(c => `PermitNo eq '${c}'`).join(' or ');
+      const filterStr = candidates.map(c => `PermitNo eq '${c.replace(/'/g, "''")}'`).join(' or ');
       params.push(`$filter=(${filterStr})`);
     }
     const query = params.length > 0 ? `?${params.join('&')}` : '';
@@ -352,18 +352,19 @@ export const permitApproverApi = {
     try {
       const response = await odataClient.get<ODataCollectionResponse<ApprovalRecord>>(endpoint, { signal });
       return response.data?.value || [];
-    } catch {
+    } catch (error: any) {
+      if (signal?.aborted || error?.response?.status !== 400) throw error;
       // Gateway fallback if complex OR filter is rejected by ABAP service
       if (permitNo?.trim()) {
         try {
-          const fbEndpoint = `${ODATA_ENTITIES.APPROVAL}?$filter=PermitNo eq '${permitNo.trim()}'&$orderby=SeqNo asc`;
+          const fbEndpoint = `${ODATA_ENTITIES.APPROVAL}?$filter=PermitNo eq '${permitNo.trim().replace(/'/g, "''")}'&$orderby=SeqNo asc`;
           const fbResponse = await odataClient.get<ODataCollectionResponse<ApprovalRecord>>(fbEndpoint, { signal });
           return fbResponse.data?.value || [];
-        } catch {
-          return [];
+        } catch (fallbackError) {
+          throw fallbackError;
         }
       }
-      return [];
+      throw error;
     }
   },
 

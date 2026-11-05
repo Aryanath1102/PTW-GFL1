@@ -1,5 +1,5 @@
 /**
- * SAP UserRole Entity Record matching SAP OData V4 schema:
+ * Normalized UserRole record for UI controls (ACTIVE is boolean here).
  * Service Namespace: com.sap.gateway.srvd_a2x.zptw_services.v0001
  * Endpoint: /sap/opu/odata4/sap/zptw_mamagement_srv/srvd_a2x/sap/zptw_services/0001/UserRole
  */
@@ -20,6 +20,9 @@ export interface SapUserRoleRecord {
     target?: string;
   }>;
 }
+
+/** SAP transport representation: only the exact string "X" means active. */
+export type SapUserRoleResponse = Omit<SapUserRoleRecord, 'ACTIVE'> & { ACTIVE?: string | null };
 
 /**
  * Enterprise User Record matching SAP OData V4 /PFCGUsers schema:
@@ -48,7 +51,6 @@ export type PtwRoleCode =
   | 'PTW_ISOLATION_REQUESTOR'
   | 'PTW_ISSU'
   | 'PTW_SAFE'
-  | 'PTW_REQUESTER'
   | 'PTW_HOLDER'
   | 'PTW_APPROVER'
   | 'PTW_ISSUER'
@@ -228,8 +230,6 @@ export function getPtwRoleInfo(roleCode: string): PtwRoleMetadata {
     ZPTW_ACCP: { label: 'Permit Acceptor', icon: 'verified_user', colorBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-500/10', category: 'AUTHORIZATION' },
     PTW_ACCEPTOR: { label: 'Permit Acceptor', icon: 'verified_user', colorBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-500/10', category: 'AUTHORIZATION' },
     ZPTW_ACCEPTOR: { label: 'Permit Acceptor', icon: 'verified_user', colorBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-500/10', category: 'AUTHORIZATION' },
-    PTW_REQUESTER: { label: 'Permit Requester / Creator', icon: 'note_add', colorBadge: 'bg-sky-50 text-sky-700 border-sky-200 ring-sky-500/10', category: 'FIELD' },
-    ZPTW_REQUESTER: { label: 'Permit Requester / Creator', icon: 'note_add', colorBadge: 'bg-sky-50 text-sky-700 border-sky-200 ring-sky-500/10', category: 'FIELD' },
     PTW_ISO_REQ: { label: 'Isolation Requestor', icon: 'lock_reset', colorBadge: 'bg-amber-50 text-amber-700 border-amber-200 ring-amber-500/10', category: 'SAFETY' },
     ZPTW_ISO_REQ: { label: 'Isolation Requestor', icon: 'lock_reset', colorBadge: 'bg-amber-50 text-amber-700 border-amber-200 ring-amber-500/10', category: 'SAFETY' },
     PTW_ISOLATOR: { label: 'Isolation Engineer / Isolator', icon: 'lock_reset', colorBadge: 'bg-amber-50 text-amber-700 border-amber-200 ring-amber-500/10', category: 'SAFETY' },

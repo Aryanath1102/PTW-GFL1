@@ -53,6 +53,7 @@ export interface SapMessageItem {
  * Primary PTW Header: PermitInfoType
  */
 export interface PermitInfoRecord {
+  '@odata.etag'?: string;
   Permit_No: string; // Key, MaxLength 10
   PermitType: string; // MaxLength 32 (HOT, COLD, etc.)
   FormRev?: string; // Form Revision, e.g. "1"

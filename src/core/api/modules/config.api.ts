@@ -259,11 +259,14 @@ class ConfigApiService {
         return activeRecords;
       }
 
-      // If SAP returned empty array, use local fallback
+      // Production must not invent configuration when SAP has no active records.
+      if (!import.meta.env.DEV) return [];
+      // Development-only reference data
       const fallback = FALLBACK_CONFIG_DATA[type] || [];
       this.cache.set(type, fallback);
       return fallback;
     } catch (error) {
+      if (!import.meta.env.DEV) { console.warn('[ConfigApi] SAP configuration unavailable.'); return []; }
       console.warn(`[ConfigApi] Live fetch for Config_Type='${type}' failed, using fallback data. Reason:`, error);
       const fallback = FALLBACK_CONFIG_DATA[type] || [];
       this.cache.set(type, fallback);
@@ -360,7 +363,8 @@ class ConfigApiService {
       // fallback to local data
     }
 
-    // 3. Fallback to local configuration table
+    if (!import.meta.env.DEV) return [];
+    // Development-only reference configuration
     const fallbackCombined = roleTypes.flatMap(t => FALLBACK_CONFIG_DATA[t] || []);
     this.cache.set(cacheKey, fallbackCombined);
     return fallbackCombined;

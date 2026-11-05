@@ -39,11 +39,11 @@ export const StitchHeader: React.FC<StitchHeaderProps> = ({
             title="Gujarat Fluorochemicals Limited - Return to Launchpad"
           >
             <img
-              src="https://gfl.co.in/assets/images/New_GFL-Logo29.webp"
+              src="./GFL-Logo.webp"
               alt="GFL Logo"
               className="h-8 sm:h-9 w-auto object-contain"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = './assets/GFL-Logo.webp';
+                (e.target as HTMLImageElement).style.visibility = 'hidden';
               }}
             />
           </div>
@@ -102,7 +102,7 @@ export const StitchHeader: React.FC<StitchHeaderProps> = ({
               </span>
               <span>Safety Map</span>
               <span className="text-[10px] bg-white/20 px-1.5 py-0.2 rounded font-mono">
-                26 SD
+                Map
               </span>
             </button>
           )}

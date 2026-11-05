@@ -3,10 +3,13 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
   // Load environment variables based on current mode
   const env = loadEnv(mode, process.cwd(), '');
 
+  if (command === 'build' && env.VITE_ODATA_BASE_URL && (!env.VITE_ODATA_BASE_URL.startsWith('/sap/') || env.VITE_ODATA_BASE_URL.startsWith('//'))) {
+    throw new Error('BSP builds require a same-system /sap/ OData path, not a hostname or localhost URL.');
+  }
   const sapTarget = env.VITE_SAP_TARGET || 'https://vhgfldevci.sap.gfl.co.in:44300';
   const sapClient = env.VITE_SAP_CLIENT || undefined;
   const proxyHeaders = sapClient ? { 'sap-client': sapClient } : undefined;

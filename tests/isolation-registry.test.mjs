@@ -53,10 +53,12 @@ test('GasTest create posts valid payload to GasTest entity and propagates SAP er
    assert.equal(config.headers.Prefer,'return=representation');
    return {data:{...body,PermitNo:'P1',TestSeq:'1'}};
   };
-  const result=await gasTesterApi.create({PermitNo:'P1',TestSeq:'1',TestType:'INITIAL'});
+  const result=await gasTesterApi.create({PermitNo:'P1',TestSeq:'1',TestType:'INITIAL',TestedBy:'TEST_USER'});
   assert.equal(result.PermitNo,'P1');
   assert.equal(calls,1);
   odataClient.post=async()=>{throw new Error('SAP POST failed');};
-  await assert.rejects(()=>gasTesterApi.create({PermitNo:'P1'}),/SAP POST failed/);
+  await assert.rejects(()=>gasTesterApi.create({PermitNo:'P1',TestedBy:'TEST_USER'}),/SAP POST failed/);
  }finally{odataClient.post=original;}
 });
+
+test('GasTest rejects a missing tester before sending a request', async()=>{ await assert.rejects(()=>gasTesterApi.create({PermitNo:'P1'}), /verified SAP tester/); });

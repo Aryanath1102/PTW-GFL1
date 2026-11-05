@@ -1,0 +1,822 @@
+
+> sap-ptw-app@1.0.0 test
+> node --test tests/clearance-rejection.test.mjs tests/login-access.test.mjs tests/startup-cancellation.test.mjs tests/sap-client.test.mjs tests/permit-work-lookup.test.mjs tests/site-procedure.test.mjs tests/prerequisites.test.mjs tests/checklist-questionnaire.test.mjs tests/isolation-registry.test.mjs tests/risk-matrix-5x5.test.mjs tests/execution-target.test.mjs tests/phone-validation.test.mjs tests/jha-templates.test.mjs tests/approval-flow.test.mjs tests/admin-user-roles.test.mjs tests/permit-validation-jump.test.mjs tests/pagination-approvals.test.mjs
+
+TAP version 13
+# [adminApi] Live SAP /UserRole fetch failed, using local store: TypeError: Invalid URL
+#     at new URL (node:internal/url:816:29)
+#     at dispatchHttpRequest (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18677:20)
+#     at eval (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18493:5)
+#     at new Promise (<anonymous>)
+#     at wrapAsync (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18477:10)
+#     at http (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18558:10)
+#     at Axios.dispatchRequest (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20362:10)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+#     at async Axios.request (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20484:14)
+#     at async Object.getUserRoles (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:23275:24)
+#     at Axios.request (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20489:43)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+#     at async Object.getUserRoles (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:23275:24)
+#     at async TestContext.<anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:265:20)
+#     at async Test.run (node:internal/test_runner/test:931:9)
+#     at async Test.processPendingSubtests (node:internal/test_runner/test:629:7) {
+#   code: 'ERR_INVALID_URL',
+#   input: '/sap/opu/odata4/sap/zptw_mamagement_srv/srvd_a2x/sap/zptw_services/0001/UserRole'
+# }
+# [adminApi] Live SAP /UserRole unfiltered fetch failed: TypeError: Invalid URL
+#     at new URL (node:internal/url:816:29)
+#     at dispatchHttpRequest (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18677:20)
+#     at eval (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18493:5)
+#     at new Promise (<anonymous>)
+#     at wrapAsync (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18477:10)
+#     at http (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18558:10)
+#     at Axios.dispatchRequest (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20362:10)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+#     at async Axios.request (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20484:14)
+#     at async Object.getUserRoles (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:23288:34)
+#     at Axios.request (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20489:43)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+#     at async Object.getUserRoles (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:23288:34)
+#     at async TestContext.<anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:269:22)
+#     at async Test.run (node:internal/test_runner/test:931:9)
+#     at async Test.processPendingSubtests (node:internal/test_runner/test:629:7) {
+#   code: 'ERR_INVALID_URL',
+#   input: '/sap/opu/odata4/sap/zptw_mamagement_srv/srvd_a2x/sap/zptw_services/0001/UserRole'
+# }
+# [adminApi] Live SAP /UserRole unfiltered fetch failed: TypeError: Invalid URL
+#     at new URL (node:internal/url:816:29)
+#     at dispatchHttpRequest (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18677:20)
+#     at eval (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18493:5)
+#     at new Promise (<anonymous>)
+#     at wrapAsync (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18477:10)
+#     at http (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18558:10)
+#     at Axios.dispatchRequest (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20362:10)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+#     at async Axios.request (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20484:14)
+#     at async Object.getUserRoles (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:23288:34)
+#     at Axios.request (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20489:43)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+#     at async Object.getUserRoles (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:23288:34)
+#     at async TestContext.<anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:272:22)
+#     at async Test.run (node:internal/test_runner/test:931:9)
+#     at async Test.processPendingSubtests (node:internal/test_runner/test:629:7) {
+#   code: 'ERR_INVALID_URL',
+#   input: '/sap/opu/odata4/sap/zptw_mamagement_srv/srvd_a2x/sap/zptw_services/0001/UserRole'
+# }
+# [SapODataClient] SAP CSRF token request failed across all probe endpoints.
+# [adminApi] Live POST /UserRole failed, updating local fallback cache: Error: SAP did not return a CSRF token. Sign in again before saving.
+#     at eval (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:21018:33)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+#     at async Axios.request (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20484:14)
+#     at async Object.createUserRole (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:23349:24)
+#     at async TestContext.<anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:281:19)
+#     at async Test.run (node:internal/test_runner/test:931:9)
+#     at async Test.processPendingSubtests (node:internal/test_runner/test:629:7) {
+#   beforeSend: true
+# }
+# [SapODataClient] SAP CSRF token request failed across all probe endpoints.
+# [adminApi] Live PATCH /UserRole failed, updating local cache: Error: SAP did not return a CSRF token. Sign in again before saving.
+#     at eval (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:21018:33)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+#     at async Axios.request (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20484:14)
+#     at async Object.updateUserRoleStatus (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:23376:24)
+#     at async TestContext.<anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:291:19)
+#     at async Test.run (node:internal/test_runner/test:931:9)
+#     at async Test.processPendingSubtests (node:internal/test_runner/test:629:7) {
+#   beforeSend: true
+# }
+# [SapODataClient] SAP CSRF token request failed across all probe endpoints.
+# [adminApi] Live DELETE /UserRole failed, purging local cache: Error: SAP did not return a CSRF token. Sign in again before saving.
+#     at eval (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:21018:33)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+#     at async Axios.request (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20484:14)
+#     at async Object.deleteUserRole (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:23413:7)
+#     at async TestContext.<anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:295:19)
+#     at async Test.run (node:internal/test_runner/test:931:9)
+#     at async Test.processPendingSubtests (node:internal/test_runner/test:629:7) {
+#   beforeSend: true
+# }
+# [adminApi] Live SAP /UserRole unfiltered fetch failed: TypeError: Invalid URL
+#     at new URL (node:internal/url:816:29)
+#     at dispatchHttpRequest (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18677:20)
+#     at eval (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18493:5)
+#     at new Promise (<anonymous>)
+#     at wrapAsync (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18477:10)
+#     at http (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18558:10)
+#     at Axios.dispatchRequest (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20362:10)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+#     at async Axios.request (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20484:14)
+#     at async Object.getUserRoles (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:23288:34)
+#     at Axios.request (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20489:43)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+#     at async Object.getUserRoles (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:23288:34)
+#     at async TestContext.<anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:299:22)
+#     at async Test.run (node:internal/test_runner/test:931:9)
+#     at async Test.processPendingSubtests (node:internal/test_runner/test:629:7) {
+#   code: 'ERR_INVALID_URL',
+#   input: '/sap/opu/odata4/sap/zptw_mamagement_srv/srvd_a2x/sap/zptw_services/0001/UserRole'
+# }
+# Subtest: ODATA_ENTITIES exposes USER_ROLE and PFCG_USERS as exact match to SAP OData V4 service
+ok 1 - ODATA_ENTITIES exposes USER_ROLE and PFCG_USERS as exact match to SAP OData V4 service
+  ---
+  duration_ms: 14.0008
+  ...
+# Subtest: Live SAP /PFCGUsers response payload conforms to schema with SAPUser, FullName, and Email
+ok 2 - Live SAP /PFCGUsers response payload conforms to schema with SAPUser, FullName, and Email
+  ---
+  duration_ms: 22.7733
+  ...
+# Subtest: Live SAP /UserRole response payload conforms to SapUserRoleRecord schema
+ok 3 - Live SAP /UserRole response payload conforms to SapUserRoleRecord schema
+  ---
+  duration_ms: 0.3172
+  ...
+# Subtest: Role normalization handles PTW_* and ZPTW_* prefixes bidirectionally
+ok 4 - Role normalization handles PTW_* and ZPTW_* prefixes bidirectionally
+  ---
+  duration_ms: 0.4158
+  ...
+# Subtest: Admin module definition is configured in MODULE_REGISTRY with PTW_ADMIN authorization
+ok 5 - Admin module definition is configured in MODULE_REGISTRY with PTW_ADMIN authorization
+  ---
+  duration_ms: 12.1056
+  ...
+# Subtest: User with PTW_ADMIN or ZPTW_ADMIN unlocks all modules across the application
+ok 6 - User with PTW_ADMIN or ZPTW_ADMIN unlocks all modules across the application
+  ---
+  duration_ms: 0.6862
+  ...
+# Subtest: PTW_ROLE_CATALOG covers all core operational roles with labels and icons
+ok 7 - PTW_ROLE_CATALOG covers all core operational roles with labels and icons
+  ---
+  duration_ms: 1.184
+  ...
+# Subtest: adminApi.computeRoleStats correctly calculates role metrics and active users
+ok 8 - adminApi.computeRoleStats correctly calculates role metrics and active users
+  ---
+  duration_ms: 0.8799
+  ...
+# Subtest: adminApi.getUserRoles filters by active status and user account
+ok 9 - adminApi.getUserRoles filters by active status and user account
+  ---
+  duration_ms: 163.3624
+  ...
+# Subtest: adminApi.createUserRole and updateUserRoleStatus perform expected data lifecycle
+ok 10 - adminApi.createUserRole and updateUserRoleStatus perform expected data lifecycle
+  ---
+  duration_ms: 116.3389
+  ...
+# Subtest: adminApi sends X for Active and empty string for Inactive in SAP payloads
+ok 11 - adminApi sends X for Active and empty string for Inactive in SAP payloads
+  ---
+  duration_ms: 5.3616
+  ...
+# Subtest: admin role reads normalize only X and use the SAP character filter
+ok 12 - admin role reads normalize only X and use the SAP character filter
+  ---
+  duration_ms: 1.968
+  ...
+# Subtest: permitCreateSchema.json defines ApprovalType matching live SAP /Approval metadata
+ok 13 - permitCreateSchema.json defines ApprovalType matching live SAP /Approval metadata
+  ---
+  duration_ms: 18.3665
+  ...
+# Subtest: Live SAP /Approval response records conform to ApprovalRecord schema and roles
+ok 14 - Live SAP /Approval response records conform to ApprovalRecord schema and roles
+  ---
+  duration_ms: 0.7386
+  ...
+# Subtest: Multi-tier stepper correctly identifies live SAP approval stages and roles
+ok 15 - Multi-tier stepper correctly identifies live SAP approval stages and roles
+  ---
+  duration_ms: 0.6463
+  ...
+# Subtest: calculateNextSeqNo correctly auto-increments SeqNo to prevent SAP duplicate key collisions
+ok 16 - calculateNextSeqNo correctly auto-increments SeqNo to prevent SAP duplicate key collisions
+  ---
+  duration_ms: 0.3501
+  ...
+# Subtest: getNextApprovalStep automatically detects next required approval role and stage
+ok 17 - getNextApprovalStep automatically detects next required approval role and stage
+  ---
+  duration_ms: 0.7095
+  ...
+# Subtest: ODATA_ACTIONS.APPROVE endpoint and approve action payload match SAP RAP specification
+ok 18 - ODATA_ACTIONS.APPROVE endpoint and approve action payload match SAP RAP specification
+  ---
+  duration_ms: 0.6601
+  ...
+# Subtest: ODATA_ACTIONS.REJECT endpoint and reject action payload match SAP RAP specification
+ok 19 - ODATA_ACTIONS.REJECT endpoint and reject action payload match SAP RAP specification
+  ---
+  duration_ms: 0.4811
+  ...
+# Subtest: ODATA_ACTIONS.ACCEPT_PERMIT endpoint and acceptPermit payload match SAP RAP specification
+ok 20 - ODATA_ACTIONS.ACCEPT_PERMIT endpoint and acceptPermit payload match SAP RAP specification
+  ---
+  duration_ms: 0.4301
+  ...
+# Subtest: ODATA_ACTIONS.REJECT_ACCEPTOR endpoint and rejectAcceptor payload match SAP RAP specification
+ok 21 - ODATA_ACTIONS.REJECT_ACCEPTOR endpoint and rejectAcceptor payload match SAP RAP specification
+  ---
+  duration_ms: 0.7724
+  ...
+# Subtest: ODATA_ACTIONS.COMPLETE_AREA_OPERATOR endpoint and completeAreaOperator payload match SAP RAP specification
+ok 22 - ODATA_ACTIONS.COMPLETE_AREA_OPERATOR endpoint and completeAreaOperator payload match SAP RAP specification
+  ---
+  duration_ms: 1.107
+  ...
+# Subtest: ODATA_ACTIONS.REJECT_AREA_OPERATOR endpoint and rejectAreaOperator payload match SAP RAP specification
+ok 23 - ODATA_ACTIONS.REJECT_AREA_OPERATOR endpoint and rejectAreaOperator payload match SAP RAP specification
+  ---
+  duration_ms: 6.6992
+  ...
+# Subtest: getNextApprovalStep flags rejected permits with isRejected: true and blocks further approvals
+ok 24 - getNextApprovalStep flags rejected permits with isRejected: true and blocks further approvals
+  ---
+  duration_ms: 0.8806
+  ...
+# Subtest: Official GFL Time-Band Approval Policy Matrix enforces shift & work category routing
+ok 25 - Official GFL Time-Band Approval Policy Matrix enforces shift & work category routing
+  ---
+  duration_ms: 26.5055
+  ...
+# Subtest: Multiple _WorkType resolution combines primary and additional categories with strictest governing policy
+ok 26 - Multiple _WorkType resolution combines primary and additional categories with strictest governing policy
+  ---
+  duration_ms: 1.5552
+  ...
+# Subtest: Pure Cold Work with no additional categories posts APPR status synchronously, while multi-category requires approval
+ok 27 - Pure Cold Work with no additional categories posts APPR status synchronously, while multi-category requires approval
+  ---
+  duration_ms: 608.3799
+  ...
+# Subtest: sitePermitApi.resubmit calls the exact SAP RAP bound action URL for PermitInfo/<KEY>/Resubmit
+ok 28 - sitePermitApi.resubmit calls the exact SAP RAP bound action URL for PermitInfo/<KEY>/Resubmit
+  ---
+  duration_ms: 2649.6943
+  ...
+# Subtest: sitePermitApi.reviseAndResubmit updates permit values via PATCH before invoking .Resubmit action
+ok 29 - sitePermitApi.reviseAndResubmit updates permit values via PATCH before invoking .Resubmit action
+  ---
+  duration_ms: 1709.9279
+  ...
+# Subtest: Resubmitted permit allows approvers to sign with auto-incremented SeqNo (Cycle 1 -> Cycle 2)
+ok 30 - Resubmitted permit allows approvers to sign with auto-incremented SeqNo (Cycle 1 -> Cycle 2)
+  ---
+  duration_ms: 1.7053
+  ...
+# Subtest: Permit lifecycle progression: APPR -> Accepter (ACCP) -> Area Operator (ACTV)
+ok 31 - Permit lifecycle progression: APPR -> Accepter (ACCP) -> Area Operator (ACTV)
+  ---
+  duration_ms: 0.3289
+  ...
+# Subtest: toSapChecklistPermitType maps UI permit codes to SAP OData codes
+ok 32 - toSapChecklistPermitType maps UI permit codes to SAP OData codes
+  ---
+  duration_ms: 10.124
+  ...
+# Subtest: checklistApi provides 18 compliance questions for Work at Height (W@H)
+ok 33 - checklistApi provides 18 compliance questions for Work at Height (W@H)
+  ---
+  duration_ms: 51.6979
+  ...
+# Subtest: checklistApi provides 23 compliance questions for Confined Space Entry (CSE)
+ok 34 - checklistApi provides 23 compliance questions for Confined Space Entry (CSE)
+  ---
+  duration_ms: 3.0251
+  ...
+# Subtest: checklistApi works transparently with UI codes like HGHT and CONF
+ok 35 - checklistApi works transparently with UI codes like HGHT and CONF
+  ---
+  duration_ms: 0.7068
+  ...
+# Subtest: checklistApi returns empty array for permit types without questionnaires
+ok 36 - checklistApi returns empty array for permit types without questionnaires
+  ---
+  duration_ms: 10.8817
+  ...
+# Subtest: checklistApi provides compliance questionnaires only for CSE, W@H, ELEC, HOT
+ok 37 - checklistApi provides compliance questionnaires only for CSE, W@H, ELEC, HOT
+  ---
+  duration_ms: 120.9476
+  ...
+# Subtest: all QuestionaireIds across CSE, W@H, ELEC, HOT are strictly unique to prevent _Safety collisions
+ok 38 - all QuestionaireIds across CSE, W@H, ELEC, HOT are strictly unique to prevent _Safety collisions
+  ---
+  duration_ms: 1.0311
+  ...
+# Subtest: completed approvers remain green when Acceptor rejects; full remarks are retained
+ok 39 - completed approvers remain green when Acceptor rejects; full remarks are retained
+  ---
+  duration_ms: 5.6421
+  ...
+# Subtest: explicit acceptor action takes precedence over generic APPR stage
+ok 40 - explicit acceptor action takes precedence over generic APPR stage
+  ---
+  duration_ms: 0.7077
+  ...
+# Subtest: Area Operator rejection preserves prior approval and acceptance
+ok 41 - Area Operator rejection preserves prior approval and acceptance
+  ---
+  duration_ms: 8.1574
+  ...
+# Subtest: approver rejection marks only that stage red
+ok 42 - approver rejection marks only that stage red
+  ---
+  duration_ms: 1.5226
+  ...
+# Subtest: missing rejection history does not falsely blame an approver
+ok 43 - missing rejection history does not falsely blame an approver
+  ---
+  duration_ms: 0.3727
+  ...
+# Subtest: latest rejection is selected by cycle and sequence, not response order
+ok 44 - latest rejection is selected by cycle and sequence, not response order
+  ---
+  duration_ms: 0.6255
+  ...
+# Subtest: resubmitted permit does not display historical rejection as current
+ok 45 - resubmitted permit does not display historical rejection as current
+  ---
+  duration_ms: 0.7583
+  ...
+# Subtest: not-required gas is excluded from both completion numerator and denominator
+ok 46 - not-required gas is excluded from both completion numerator and denominator
+  ---
+  duration_ms: 0.3927
+  ...
+# Subtest: Live SAP backend PLANT and DEPARTMENT master data matches exact GFL configuration
+ok 47 - Live SAP backend PLANT and DEPARTMENT master data matches exact GFL configuration
+  ---
+  duration_ms: 26.1097
+  ...
+# Subtest: Nested dropdown plant mapping resolves plants for every execution department
+ok 48 - Nested dropdown plant mapping resolves plants for every execution department
+  ---
+  duration_ms: 6.6896
+  ...
+# Subtest: formatExecutionTarget correctly formats executing plant - department within 40 chars for SAP GFL records
+ok 49 - formatExecutionTarget correctly formats executing plant - department within 40 chars for SAP GFL records
+  ---
+  duration_ms: 0.892
+  ...
+# Subtest: preparePermitCreate accepts formatted ExecDept plant - department and enforces 40 char schema limit
+ok 50 - preparePermitCreate accepts formatted ExecDept plant - department and enforces 40 char schema limit
+  ---
+  duration_ms: 52.5176
+  ...
+# Subtest: isolation and gas reads propagate SAP failures and never return local fallback evidence
+ok 51 - isolation and gas reads propagate SAP failures and never return local fallback evidence
+  ---
+  duration_ms: 19.998
+  ...
+# Subtest: certificate create posts nested items once and only returns SAP numbering
+ok 52 - certificate create posts nested items once and only returns SAP numbering
+  ---
+  duration_ms: 11.3626
+  ...
+# Subtest: update allows PermitNo/Remarks, passes ETag or wildcard fallback and rejects immutable fields
+ok 53 - update allows PermitNo/Remarks, passes ETag or wildcard fallback and rejects immutable fields
+  ---
+  duration_ms: 1.7218
+  ...
+# Subtest: GasTest create posts valid payload to GasTest entity and propagates SAP errors
+ok 54 - GasTest create posts valid payload to GasTest entity and propagates SAP errors
+  ---
+  duration_ms: 12.1552
+  ...
+# Subtest: JHA module registers corporate templates from HSE/SAF/F/05 standard and additional work categories
+ok 55 - JHA module registers corporate templates from HSE/SAF/F/05 standard and additional work categories
+  ---
+  duration_ms: 7.0184
+  ...
+# Subtest: Every JHA row has valid risk ratings, likelihood, severity, and mitigation measures
+ok 56 - Every JHA row has valid risk ratings, likelihood, severity, and mitigation measures
+  ---
+  duration_ms: 0.7361
+  ...
+# Subtest: detectBestJhaTemplate automatically resolves permits to the proper standard template
+ok 57 - detectBestJhaTemplate automatically resolves permits to the proper standard template
+  ---
+  duration_ms: 0.72
+  ...
+# Subtest: getJhaTemplateById returns target template or falls back safely
+ok 58 - getJhaTemplateById returns target template or falls back safely
+  ---
+  duration_ms: 0.2419
+  ...
+# Subtest: GENERAL_SAFETY_GUIDELINES contains 10 corporate HSE guidelines
+ok 59 - GENERAL_SAFETY_GUIDELINES contains 10 corporate HSE guidelines
+  ---
+  duration_ms: 0.3226
+  ...
+# Subtest: unverified SAP session cannot grant the former hard-coded administrator
+ok 60 - unverified SAP session cannot grant the former hard-coded administrator
+  ---
+  duration_ms: 1153.1604
+  ...
+# Subtest: startup identity takes precedence over URL hints and must match manual identity
+ok 61 - startup identity takes precedence over URL hints and must match manual identity
+  ---
+  duration_ms: 198.9454
+  ...
+# Subtest: userinfo membership grants entry but enterprise roles grant no modules
+ok 62 - userinfo membership grants entry but enterprise roles grant no modules
+  ---
+  duration_ms: 116.3452
+  ...
+# Subtest: only matching active UserRole assignments grant modules and approval tiers stay distinct
+ok 63 - only matching active UserRole assignments grant modules and approval tiers stay distinct
+  ---
+  duration_ms: 115.8467
+  ...
+# Subtest: active administrator grants admin; later empty or failed roles do not restore permissions
+ok 64 - active administrator grants admin; later empty or failed roles do not restore permissions
+  ---
+  duration_ms: 436.4846
+  ...
+# Subtest: only exact SAP X is active; legacy booleans, empty and other values deny access
+ok 65 - only exact SAP X is active; legacy booleans, empty and other values deny access
+  ---
+  duration_ms: 126.5929
+  ...
+# Subtest: password credentials are allowed only in development and still require matching SAP identity
+ok 66 - password credentials are allowed only in development and still require matching SAP identity
+  ---
+  duration_ms: 644.7069
+  ...
+# Subtest: logout invalidates an in-flight login
+ok 67 - logout invalidates an in-flight login
+  ---
+  duration_ms: 187.0276
+  ...
+# Subtest: server-side pagination queries include $top, $skip, $count: true, and $orderby
+ok 68 - server-side pagination queries include $top, $skip, $count: true, and $orderby
+  ---
+  duration_ms: 10.7216
+  ...
+# Subtest: pagination offset and page calculation logic is accurate
+ok 69 - pagination offset and page calculation logic is accurate
+  ---
+  duration_ms: 0.5638
+  ...
+# Subtest: approver, acceptor, and area operator status mappings map to exact SAP OData conditions
+ok 70 - approver, acceptor, and area operator status mappings map to exact SAP OData conditions
+  ---
+  duration_ms: 0.3242
+  ...
+# Subtest: Validation Target: Validity period expiration properly maps to Step 2 and field-valid-to-datetime
+ok 71 - Validation Target: Validity period expiration properly maps to Step 2 and field-valid-to-datetime
+  ---
+  duration_ms: 2.9264
+  ...
+# Subtest: Validation Target: Validity start/end order and 8-hour max map to Step 2 validity fields
+ok 72 - Validation Target: Validity start/end order and 8-hour max map to Step 2 validity fields
+  ---
+  duration_ms: 0.2857
+  ...
+# Subtest: Validation Target: Shift end timing maps to Step 3 Section D shift field
+ok 73 - Validation Target: Shift end timing maps to Step 3 Section D shift field
+  ---
+  duration_ms: 0.2133
+  ...
+# Subtest: Validation Target: Missing work selection maps to Step 1
+ok 74 - Validation Target: Missing work selection maps to Step 1
+  ---
+  duration_ms: 0.2133
+  ...
+# Subtest: Validation Target: General permit details map to Step 2 appropriate fields
+ok 75 - Validation Target: General permit details map to Step 2 appropriate fields
+  ---
+  duration_ms: 0.2814
+  ...
+# Subtest: Validation Target: Safety roles (Fire Watch, Standby, Rescue, Rigging) map to Step 3 procedure fields
+ok 76 - Validation Target: Safety roles (Fire Watch, Standby, Rescue, Rigging) map to Step 3 procedure fields
+  ---
+  duration_ms: 0.3259
+  ...
+# Subtest: Validation Target: Crew muster, PPE, hazards and checklists map to their respective steps
+ok 77 - Validation Target: Crew muster, PPE, hazards and checklists map to their respective steps
+  ---
+  duration_ms: 8.2461
+  ...
+# Subtest: Validation Target: Incomplete category compliance checklist maps to Step 5 with target button ID
+ok 78 - Validation Target: Incomplete category compliance checklist maps to Step 5 with target button ID
+  ---
+  duration_ms: 0.5903
+  ...
+# Subtest: userinfo serializes sap-client once after merging Axios defaults
+ok 79 - userinfo serializes sap-client once after merging Axios defaults
+  ---
+  duration_ms: 23.5835
+  ...
+# Subtest: fetchStartupUser discovers user from /sap/bc/ui2/start_up and handles various SAP payloads
+ok 80 - fetchStartupUser discovers user from /sap/bc/ui2/start_up and handles various SAP payloads
+  ---
+  duration_ms: 11.8034
+  ...
+# Subtest: validates real calendar dates and inclusive same-day ranges
+ok 81 - validates real calendar dates and inclusive same-day ranges
+  ---
+  duration_ms: 5.526
+  ...
+# Subtest: all CDS branches filter by category, source, type and inclusive WorkDate
+ok 82 - all CDS branches filter by category, source, type and inclusive WorkDate
+  ---
+  duration_ms: 4.6522
+  ...
+# Subtest: prevents contradictory category/source/type combinations and injection
+ok 83 - prevents contradictory category/source/type combinations and injection
+  ---
+  duration_ms: 0.7245
+  ...
+# Subtest: UI choices reflect the CDS and do not invent a Predictive mapping
+ok 84 - UI choices reflect the CDS and do not invent a Predictive mapping
+  ---
+  duration_ms: 0.4526
+  ...
+# Subtest: composite keys distinguish order and notification with the same reference ID
+ok 85 - composite keys distinguish order and notification with the same reference ID
+  ---
+  duration_ms: 0.2615
+  ...
+# Subtest: maps order fields and clears notification linkage without losing leading zeroes
+ok 86 - maps order fields and clears notification linkage without losing leading zeroes
+  ---
+  duration_ms: 0.3669
+  ...
+# Subtest: maps M2 notification and clears order type instead of fabricating a PM02 link
+ok 87 - maps M2 notification and clears order type instead of fabricating a PM02 link
+  ---
+  duration_ms: 0.5651
+  ...
+# Subtest: PM03 shutdown remains an ORDER when filling the permit
+ok 88 - PM03 shutdown remains an ORDER when filling the permit
+  ---
+  duration_ms: 0.6959
+  ...
+# Subtest: maps live SAP PMIntegration fields WorkCenter, AreaLoc, ColorNumber, etc. into permit reference
+ok 89 - maps live SAP PMIntegration fields WorkCenter, AreaLoc, ColorNumber, etc. into permit reference
+  ---
+  duration_ms: 0.4262
+  ...
+# Subtest: PMIntegration request carries filter, selected client and abort signal; parses ABAP padding
+ok 90 - PMIntegration request carries filter, selected client and abort signal; parses ABAP padding
+  ---
+  duration_ms: 0.9787
+  ...
+# Subtest: backend errors, legacy response shapes and incomplete pages do not become successful records
+ok 91 - backend errors, legacy response shapes and incomplete pages do not become successful records
+  ---
+  duration_ms: 10.4015
+  ...
+# Subtest: create body uses server numbering and excludes unsupported and manufactured lifecycle records
+ok 92 - create body uses server numbering and excludes unsupported and manufactured lifecycle records
+  ---
+  duration_ms: 2.7584
+  ...
+# Subtest: create validation rejects missing real work, crew, controls, expired or reversed validity and overlong fields
+ok 93 - create validation rejects missing real work, crew, controls, expired or reversed validity and overlong fields
+  ---
+  duration_ms: 0.8185
+  ...
+# Subtest: real create endpoint posts sanitized data once and returns only the SAP permit number
+ok 94 - real create endpoint posts sanitized data once and returns only the SAP permit number
+  ---
+  duration_ms: 0.808
+  ...
+# Subtest: failed or ambiguous creates never return a simulated permit or retry automatically
+ok 95 - failed or ambiguous creates never return a simulated permit or retry automatically
+  ---
+  duration_ms: 1.3885
+  ...
+# Subtest: SAP login HTML is rejected even when HTTP status is 200
+ok 96 - SAP login HTML is rejected even when HTTP status is 200
+  ---
+  duration_ms: 0.9977
+  ...
+# Subtest: missing CSRF token blocks writes before a POST is sent
+ok 97 - missing CSRF token blocks writes before a POST is sent
+  ---
+  duration_ms: 5.7467
+  ...
+# Subtest: validatePhoneNumber checks mandatory status
+ok 98 - validatePhoneNumber checks mandatory status
+  ---
+  duration_ms: 2.3905
+  ...
+# Subtest: validatePhoneNumber validates 10-digit standard Indian mobile numbers
+ok 99 - validatePhoneNumber validates 10-digit standard Indian mobile numbers
+  ---
+  duration_ms: 0.466
+  ...
+# Subtest: validatePhoneNumber validates numbers with country code or separators
+ok 100 - validatePhoneNumber validates numbers with country code or separators
+  ---
+  duration_ms: 1.6135
+  ...
+# Subtest: validatePhoneNumber rejects numbers with fewer than 10 digits
+ok 101 - validatePhoneNumber rejects numbers with fewer than 10 digits
+  ---
+  duration_ms: 1.7317
+  ...
+# Subtest: validatePhoneNumber rejects numbers with more than 15 digits
+ok 102 - validatePhoneNumber rejects numbers with more than 15 digits
+  ---
+  duration_ms: 2.2954
+  ...
+# Subtest: validatePhoneNumber rejects invalid alphabetic or symbolic characters
+ok 103 - validatePhoneNumber rejects invalid alphabetic or symbolic characters
+  ---
+  duration_ms: 0.2905
+  ...
+# Subtest: sanitizePhoneNumber strips disallowed characters and respects maxLength
+ok 104 - sanitizePhoneNumber strips disallowed characters and respects maxLength
+  ---
+  duration_ms: 0.6785
+  ...
+# Subtest: creation status and approval matrix require ALL required checks, not either check
+ok 105 - creation status and approval matrix require ALL required checks, not either check
+  ---
+  duration_ms: 18.8073
+  ...
+# Subtest: required choices and department cannot default silently; unknown stored gas flag stays unknown
+ok 106 - required choices and department cannot default silently; unknown stored gas flag stays unknown
+  ---
+  duration_ms: 1.2959
+  ...
+# Subtest: create omits computed quantity, rejects contradictory LOTO and defers isolation points
+ok 107 - create omits computed quantity, rejects contradictory LOTO and defers isolation points
+  ---
+  duration_ms: 4.0433
+  ...
+# Subtest: certificate creation serializes nested items and omits computed keys and signatures
+ok 108 - certificate creation serializes nested items and omits computed keys and signatures
+  ---
+  duration_ms: 0.964
+  ...
+# Subtest: declared bound actions send empty bodies, correct binding and ETag; uncertain writes never retry
+ok 109 - declared bound actions send empty bodies, correct binding and ETag; uncertain writes never retry
+  ---
+  duration_ms: 8.3606
+  ...
+# Subtest: creation with pending prerequisite cannot treat backend CRTD as success
+ok 110 - creation with pending prerequisite cannot treat backend CRTD as success
+  ---
+  duration_ms: 0.6823
+  ...
+# Subtest: 5x5 Matrix correctly maps all 25 cells to exact corporate risk bands and scores
+ok 111 - 5x5 Matrix correctly maps all 25 cells to exact corporate risk bands and scores
+  ---
+  duration_ms: 2.65
+  ...
+# Subtest: Severity criteria table contains exact corporate HSE pillars for ratings 5 to 1
+ok 112 - Severity criteria table contains exact corporate HSE pillars for ratings 5 to 1
+  ---
+  duration_ms: 3.6217
+  ...
+# Subtest: Likelihood probability scale matches 1 to 5 frequency categories
+ok 113 - Likelihood probability scale matches 1 to 5 frequency categories
+  ---
+  duration_ms: 1.5627
+  ...
+# Subtest: deduceMatrixCoordinates accurately breaks down scores into 5x5 Severity and Likelihood
+ok 114 - deduceMatrixCoordinates accurately breaks down scores into 5x5 Severity and Likelihood
+  ---
+  duration_ms: 3.5319
+  ...
+# Subtest: extractHazardRisk dynamically extracts S, L, score, and matrix band from Remarks or RiskLevel
+ok 115 - extractHazardRisk dynamically extracts S, L, score, and matrix band from Remarks or RiskLevel
+  ---
+  duration_ms: 1.0275
+  ...
+# Subtest: getMaxHazardRisk dynamically returns highest risk from filled-up hazards
+ok 116 - getMaxHazardRisk dynamically returns highest risk from filled-up hazards
+  ---
+  duration_ms: 0.6144
+  ...
+# Subtest: API requests omit client in automatic mode and clear a previous explicit client
+ok 117 - API requests omit client in automatic mode and clear a previous explicit client
+  ---
+  duration_ms: 525.2072
+  ...
+# Subtest: the same DEV build selects the QAS launch client without a user parameter
+ok 118 - the same DEV build selects the QAS launch client without a user parameter
+  ---
+  duration_ms: 2.2369
+  ...
+# Subtest: launch client overrides injected client and preserves leading zeros
+ok 119 - launch client overrides injected client and preserves leading zeros
+  ---
+  duration_ms: 0.2499
+  ...
+# Subtest: invalid or absent launch client uses injected client or automatic SAP selection
+ok 120 - invalid or absent launch client uses injected client or automatic SAP selection
+  ---
+  duration_ms: 0.2402
+  ...
+# Subtest: every procedure category and combined work fits the SAP creation schema without fabricated signatures
+ok 121 - every procedure category and combined work fits the SAP creation schema without fabricated signatures
+  ---
+  duration_ms: 67.3469
+  ...
+# Subtest: confined space entry maps CONF to CSE in outbound SAP payload and accepts CSE directly
+ok 122 - confined space entry maps CONF to CSE in outbound SAP payload and accepts CSE directly
+  ---
+  duration_ms: 1.9731
+  ...
+# Subtest: primary permit type and multiple additional work categories are mapped to SAP child table _WorkType
+ok 123 - primary permit type and multiple additional work categories are mapped to SAP child table _WorkType
+  ---
+  duration_ms: 11.1751
+  ...
+# Subtest: compliance checklist responses across categories are validated and serialized into SAP child table _CHK
+ok 124 - compliance checklist responses across categories are validated and serialized into SAP child table _CHK
+  ---
+  duration_ms: 3.535
+  ...
+# Subtest: initial site validity checks eight-hour and actual shift boundaries, including midnight
+ok 125 - initial site validity checks eight-hour and actual shift boundaries, including midnight
+  ---
+  duration_ms: 7.5974
+  ...
+# Subtest: combined activities cannot bypass gas interval or isolation planning checks
+ok 126 - combined activities cannot bypass gas interval or isolation planning checks
+  ---
+  duration_ms: 3.3485
+  ...
+# Subtest: issuer separation, JSA reference, mandatory scope and NA reasons are checked
+ok 127 - issuer separation, JSA reference, mandatory scope and NA reasons are checked
+  ---
+  duration_ms: 1.4859
+  ...
+# Subtest: changing category excludes obsolete conditional data but preserves shared preparation
+ok 128 - changing category excludes obsolete conditional data but preserves shared preparation
+  ---
+  duration_ms: 0.4049
+  ...
+# Subtest: new general safety category fits SAP and retains reported evidence
+ok 129 - new general safety category fits SAP and retains reported evidence
+  ---
+  duration_ms: 1.2085
+  ...
+# Subtest: approval planning respects time boundaries and exposes unresolved routes
+ok 130 - approval planning respects time boundaries and exposes unresolved routes
+  ---
+  duration_ms: 1.1389
+  ...
+# Subtest: gas evaluation never silently chooses disputed thresholds or accepts invalid readings
+ok 131 - gas evaluation never silently chooses disputed thresholds or accepts invalid readings
+  ---
+  duration_ms: 0.6264
+  ...
+# Subtest: calibration errors, absent flags, wrong device and expiry never produce calibrated=true
+ok 132 - calibration errors, absent flags, wrong device and expiry never produce calibrated=true
+  ---
+  duration_ms: 1.1024
+  ...
+# Subtest: SAP record read uses metadata field names and escapes OData literals
+ok 133 - SAP record read uses metadata field names and escapes OData literals
+  ---
+  duration_ms: 12.6511
+  ...
+# Subtest: nature of work and tools/equipment are serialized into SAP child tables _NATW and _Equipment with unique ItemNo keys
+ok 134 - nature of work and tools/equipment are serialized into SAP child tables _NATW and _Equipment with unique ItemNo keys
+  ---
+  duration_ms: 2.5723
+  ...
+# Subtest: other checkboxes in nature and tools capture user input into OtherText and _Safety
+ok 135 - other checkboxes in nature and tools capture user input into OtherText and _Safety
+  ---
+  duration_ms: 1.4305
+  ...
+# Subtest: legacy gas writes cannot silently persist a manufactured pass flag
+ok 136 - legacy gas writes cannot silently persist a manufactured pass flag
+  ---
+  duration_ms: 0.3678
+  ...
+# Subtest: special safety roles and plan references are validated and serialized into OData payload
+ok 137 - special safety roles and plan references are validated and serialized into OData payload
+  ---
+  duration_ms: 11.2493
+  ...
+# Subtest: AuditLog is queried directly from standalone AuditLog entity set and sorted chronologically without fallback mock data
+ok 138 - AuditLog is queried directly from standalone AuditLog entity set and sorted chronologically without fallback mock data
+  ---
+  duration_ms: 1.3181
+  ...
+# Subtest: cancelled SAP restoration stops discovery and cancels profile/role requests
+ok 139 - cancelled SAP restoration stops discovery and cancels profile/role requests
+  ---
+  duration_ms: 612.9601
+  ...
+1..139
+# tests 139
+# suites 0
+# pass 139
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 16297.6223

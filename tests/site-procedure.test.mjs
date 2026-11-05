@@ -52,6 +52,21 @@ function payload(primary = 'HOT', plan = completePlan()) {
   };
 }
 
+test('permit creation allows blank supervisor details and no crew with site procedure completed', () => {
+  for (const crew of [[], undefined]) {
+    const body = preparePermitCreate({
+      ...payload(), SupvName: '', SupvPhone: '', PersonsQty: 0, _Worker: crew
+    });
+    assert.equal(body.SupvName, '');
+    assert.equal(body.SupvPhone, '');
+    assert.ok(!('_Worker' in body));
+  }
+  assert.throws(() => preparePermitCreate({ ...payload(), PersonsQty: 1, _Worker: [] }), /crew quantity/);
+  assert.throws(() => preparePermitCreate({
+    ...payload(), _Worker: [{ WorkerName: '', WorkerTypeCode: 'EMP', EmpId: 'W1' }]
+  }), /Each worker needs/);
+});
+
 test('every procedure category and combined work fits the SAP creation schema without fabricated signatures', () => {
   for (const category of PERMIT_CATEGORIES) {
     const plan = completePlan(); plan.additionalTypes = ['HOT', 'CONF', 'EXCV', 'HGHT', 'LINE', 'RIGG', 'RAD', 'HYPN', 'ELEC', 'OTHER'];

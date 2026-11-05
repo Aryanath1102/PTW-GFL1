@@ -23,6 +23,24 @@ export const SapReauthModal: React.FC<SapReauthModalProps> = ({
 
   if (!isOpen) return null;
 
+  if (!import.meta.env.DEV) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
+        <section className="bg-white rounded-2xl p-8 max-w-md space-y-4" role="dialog" aria-modal="true" aria-label="SAP session verification">
+          <h2 className="text-xl font-bold">Verify your SAP session</h2>
+          <p>Return to SAP Fiori and sign in if requested. Then retry here.</p>
+          {externalError && <p role="alert">{externalError}</p>}
+          <button disabled={isSubmitting} className="bg-blue-700 text-white rounded px-4 py-2"
+            onClick={async () => {
+              setIsSubmitting(true);
+              try { await onReauth(''); } finally { setIsSubmitting(false); }
+            }}>Retry SAP session</button>
+          <button className="px-4 py-2" onClick={onLogout}>Sign out of PTW</button>
+        </section>
+      </div>
+    );
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);

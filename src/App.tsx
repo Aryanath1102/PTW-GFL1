@@ -136,6 +136,11 @@ export const App: React.FC = () => {
               submessage="Querying SAP OData V4 services for user safety profile and authorization matrix"
             />
           </div>
+        ) : user?.unlockedModules.length === 0 ? (
+          <div className="max-w-xl mx-auto mt-20 bg-white border rounded-2xl p-8 text-center">
+            <h2 className="text-xl font-bold">No modules assigned</h2>
+            <p className="mt-3">{user.fullName && user.fullName !== user.id ? `${user.fullName} (${user.id})` : user.id}, you have access to the PTW application, but no active module roles are assigned to your account. Please contact your PTW application administrator to request access to the required modules.</p>
+          </div>
         ) : selectedModule === null ? (
           /* KPI Card Launchpad: All modules displayed as interactive KPI cards */
           <ModuleLaunchpad

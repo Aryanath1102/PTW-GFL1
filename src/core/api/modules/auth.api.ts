@@ -20,13 +20,12 @@ export interface SapStartupInfo {
 export const authApi = {
   /**
    * Attempts to discover the currently logged-in user from SAP NetWeaver's
-   * standard startup and user services (/sap/bc/ui2/start_up or /sap/bc/ui2/user)
+   * startup service (/sap/bc/ui2/start_up)
    * using the active browser session cookies.
    */
   async fetchStartupUser(client: string = getDefaultSapClient(), signal?: AbortSignal): Promise<SapStartupInfo | null> {
     const endpoints = [
-      `/sap/bc/ui2/start_up`,
-      `/sap/bc/ui2/user`
+      `/sap/bc/ui2/start_up`
     ];
 
     for (const ep of endpoints) {
@@ -109,44 +108,21 @@ export const authApi = {
   async fetchUserRoles(userId: string, client: string = getDefaultSapClient(), signal?: AbortSignal): Promise<Array<{
     SAP_USER: string;
     PTW_ROLE: string;
-    ACTIVE: boolean;
+    ACTIVE: string;
   }>> {
     const cleanId = userId.trim().toUpperCase();
-    try {
-      const response = await odataClient.get<ODataCollectionResponse<{
-        SAP_USER: string;
-        PTW_ROLE: string;
-        ACTIVE: boolean;
-      }>>(ODATA_ENTITIES.USER_ROLE, {
-        params: {
-          $filter: `SAP_USER eq '${cleanId.replace(/'/g, "''")}'`,
-          ...(client ? { 'sap-client': client } : {}),
-        },
-        signal,
-        timeout: 5000,
-      });
-      if (response.data?.value && Array.isArray(response.data.value)) {
-        return response.data.value;
-      }
-    } catch {
-      // If $filter fails on SAP gateway, retry unfiltered /UserRole and filter client-side
-    }
-
-    try {
-      const unfilteredResp = await odataClient.get<ODataCollectionResponse<{
-        SAP_USER: string;
-        PTW_ROLE: string;
-        ACTIVE: boolean;
-      }>>(ODATA_ENTITIES.USER_ROLE, {
-        params: client ? { 'sap-client': client } : {},
-        signal,
-        timeout: 6000,
-      });
-      const all = unfilteredResp.data?.value || [];
-      return all.filter((r) => r.SAP_USER?.trim().toUpperCase() === cleanId);
-    } catch {
-      return [];
-    }
+    const response = await odataClient.get<ODataCollectionResponse<{
+      SAP_USER: string; PTW_ROLE: string; ACTIVE: string;
+    }>>(ODATA_ENTITIES.USER_ROLE, {
+      params: {
+        $filter: `SAP_USER eq '${cleanId.replace(/'/g, "''")}'`,
+        ...(client ? { 'sap-client': client } : {}),
+      },
+      signal,
+      timeout: 6000,
+    });
+    if (!Array.isArray(response.data?.value)) throw new Error('SAP returned an invalid UserRole response.');
+    return response.data.value.filter(r => r.SAP_USER?.trim().toUpperCase() === cleanId);
   },
 
   /**

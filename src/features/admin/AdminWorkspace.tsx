@@ -159,7 +159,7 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ user, onBack }) 
     return userRoles.filter(
       (r) =>
         r.ACTIVE &&
-        ['PTW_APPR1', 'PTW_APPR2', 'PTW_APPR3', 'PTW_AOPR', 'PTW_AREA_OPP', 'PTW_HOLD', 'PTW_ISSU', 'PTW_ACCP', 'PTW_ACCEPTOR', 'PTW_APPROVER', 'PTW_ISSUER', 'PTW_REQUESTER', 'PTW_HOLDER', 'PTW_AREA_OWNER'].some(
+        ['PTW_APPR1', 'PTW_APPR2', 'PTW_APPR3', 'PTW_AOPR', 'PTW_AREA_OPP', 'PTW_HOLD', 'PTW_ISSU', 'PTW_ACCP', 'PTW_ACCEPTOR', 'PTW_APPROVER', 'PTW_ISSUER', 'PTW_ISSU', 'PTW_HOLDER', 'PTW_AREA_OWNER'].some(
           (role) => r.PTW_ROLE === role || r.PTW_ROLE === `Z${role}`
         )
     ).length;
@@ -395,7 +395,7 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ user, onBack }) 
     e.preventDefault();
     const rawInput = newUserId.trim();
     if (!rawInput) {
-      toast.warning('Enter an SAP User ID or personnel number (e.g. VERTIF-V or 10045)', {
+      toast.warning('Enter an SAP User ID or personnel number (e.g. SAP_USER or 10045)', {
         title: 'Missing User'
       });
       return;
@@ -750,7 +750,7 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ user, onBack }) 
               </span>
               <span className="text-slate-400 hidden lg:inline">·</span>
               <span className="text-slate-600 hidden lg:inline">
-                Admin: <strong className="text-slate-900 font-mono">{user?.id || 'VERTIF-V'}</strong>
+                Admin: <strong className="text-slate-900 font-mono">{user?.id || ''}</strong>
               </span>
             </div>
           </div>
@@ -1451,7 +1451,7 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ user, onBack }) 
                   <input
                     type="text"
                     required
-                    placeholder="e.g. VERTIF-V, 10001 (or comma-separated for batch)"
+                    placeholder="e.g. SAP_USER, 10001 (or comma-separated for batch)"
                     value={newUserId}
                     onChange={(e) => setNewUserId(e.target.value.toUpperCase())}
                     className="w-full pl-9 pr-28 py-2 text-xs font-mono font-bold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all text-slate-900 placeholder:font-normal placeholder:text-slate-400"
@@ -1604,7 +1604,7 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ user, onBack }) 
                     Status <span className="text-rose-500">*</span>
                   </label>
                   <span className="text-[10px] font-mono text-slate-500">
-                    Payload: <code className="font-bold text-slate-800">"ACTIVE": {newIsActive ? 'true' : 'false'}</code>
+                    Payload: <code className="font-bold text-slate-800">"ACTIVE": {newIsActive ? '"X"' : '""'}</code>
                   </span>
                 </div>
 
@@ -1647,8 +1647,8 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ user, onBack }) 
                 </div>
                 <div className="text-[11px] text-slate-500 font-sans leading-tight">
                   {newIsActive
-                    ? 'Active (true) will go to SAP in payload: user receives live authorization in PTW modules.'
-                    : 'Inactive (false) will go to SAP in payload: role mapping created in suspended/draft status.'}
+                    ? 'Active (X) will go to SAP in payload: user receives live authorization in PTW modules.'
+                    : 'Inactive (empty) will go to SAP in payload: role mapping created in suspended/draft status.'}
                 </div>
               </div>
 
@@ -1671,7 +1671,7 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ user, onBack }) 
                 {showPayloadDetails && (
                   <div className="p-2.5 bg-slate-900 text-emerald-400 font-mono text-[10px] space-y-1">
                     <div className="text-slate-400 text-[10px]">
-                      // Endpoint: https://vhgfldevci.sap.gfl.co.in:44300/.../UserRole
+                      // Endpoint: /sap/opu/odata4/sap/zptw_mamagement_srv/srvd_a2x/sap/zptw_services/0001/UserRole
                     </div>
                     <pre className="overflow-x-auto text-[10px]">
                       {JSON.stringify(
@@ -1679,12 +1679,12 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ user, onBack }) 
                           ? parsedInputUsers.map((u) => ({
                               SAP_USER: u,
                               PTW_ROLE: newRole,
-                              ACTIVE: newIsActive
+                              ACTIVE: newIsActive ? 'X' : ''
                             }))
                           : {
-                              SAP_USER: parsedInputUsers[0] || 'VERTIF-V',
+                              SAP_USER: parsedInputUsers[0] || 'SAP_USER',
                               PTW_ROLE: newRole,
-                              ACTIVE: newIsActive
+                              ACTIVE: newIsActive ? 'X' : ''
                             },
                         null,
                         2
@@ -1802,7 +1802,7 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ user, onBack }) 
                       type="text"
                       value={editUserId}
                       onChange={(e) => setEditUserId(e.target.value.toUpperCase())}
-                      placeholder="e.g. VERTIF-V or 1000045"
+                      placeholder="e.g. SAP_USER or 1000045"
                       className="w-full pl-9 pr-3 py-2 text-xs font-mono font-bold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006398]/20 focus:border-[#006398] transition-all text-slate-900 uppercase"
                       required
                     />
@@ -1911,7 +1911,7 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ user, onBack }) 
                     Status <span className="text-rose-500">*</span>
                   </label>
                   <span className="text-[10px] font-mono text-slate-500">
-                    Payload: <code className="font-bold text-slate-800">"ACTIVE": {editIsActive ? 'true' : 'false'}</code>
+                    Payload: <code className="font-bold text-slate-800">"ACTIVE": {editIsActive ? '"X"' : '""'}</code>
                   </span>
                 </div>
 
@@ -1954,8 +1954,8 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ user, onBack }) 
                 </div>
                 <div className="text-[11px] text-slate-500 font-sans leading-tight">
                   {editIsActive
-                    ? 'Active (true) will go to SAP in payload: user has live authorization for this role.'
-                    : 'Inactive (false) will go to SAP in payload: role mapping is suspended/inactive.'}
+                    ? 'Active (X) will go to SAP in payload: user has live authorization for this role.'
+                    : 'Inactive (empty) will go to SAP in payload: role mapping is suspended/inactive.'}
                 </div>
               </div>
 
@@ -1997,7 +1997,7 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ user, onBack }) 
 {
   "SAP_USER": "${editUserId}",
   "PTW_ROLE": "${editRole}",
-  "ACTIVE": ${editIsActive}
+  "ACTIVE": "${editIsActive ? 'X' : ''}"
 }`}
                     </pre>
                   </div>
@@ -2447,7 +2447,7 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ user, onBack }) 
 
             <div className="text-xs font-mono text-slate-600 space-y-1">
               <div>
-                Target URL: <code className="text-slate-900 bg-slate-100 px-1 py-0.5 rounded">https://vhgfldevci.sap.gfl.co.in:44300/.../UserRole</code>
+                Target URL: <code className="text-slate-900 bg-slate-100 px-1 py-0.5 rounded">/sap/opu/odata4/sap/zptw_mamagement_srv/srvd_a2x/sap/zptw_services/0001/UserRole</code>
               </div>
               <div>Client: <strong>{user?.client || 'Automatic'}</strong></div>
             </div>

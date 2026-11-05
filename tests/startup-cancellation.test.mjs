@@ -28,6 +28,6 @@ test('cancelled SAP restoration stops discovery and cancels profile/role request
   assert.equal(await authApi.fetchStartupUser('', controller.signal), null);
   assert.equal(calls, 1, 'Do not try another startup endpoint after cancellation');
   await assert.rejects(authApi.fetchUserInfo('TEST', '', controller.signal));
-  assert.deepEqual(await authApi.fetchUserRoles('TEST', '', controller.signal), []);
+  await assert.rejects(authApi.fetchUserRoles('TEST', '', controller.signal));
   assert.equal(calls, 1, 'Cancelled profile and role requests must not reach SAP');
 });

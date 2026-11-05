@@ -635,7 +635,7 @@ export const GasTesterWorkspace: React.FC<GasTesterWorkspaceProps> = ({ user, on
         TestTime: testTime,
         TestLocation: formLocation.trim(),
         SampleLevel: formSampleLevel || 'MID',
-        TestedBy: user?.id || 'VERTIF-V',
+        TestedBy: user?.id || '',
         Cert: formCert.trim(),
         MeterType: formMeterType.trim() || 'GAS_DETECTOR',
         MeterId: formMeterId.trim(),

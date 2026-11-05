@@ -34,6 +34,22 @@ export const SapLoginPage: React.FC = () => {
     }
   }, [getRememberedUserId]);
 
+  if (!import.meta.env.DEV) {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-6">
+        <section className="max-w-lg bg-white rounded-2xl border p-8 space-y-4">
+          <h1 className="text-xl font-bold">SAP PTW access</h1>
+          <p role="alert">{error || 'Open this application from SAP Fiori using your signed-in SAP account.'}</p>
+          <p>After signing in to SAP Fiori, retry to verify your PTW access.</p>
+          <button className="bg-blue-700 text-white rounded-lg px-4 py-2" disabled={loading}
+            onClick={() => void login({ userId: '' })}>
+            {loading ? 'Verifying SAP access...' : 'Retry SAP session'}
+          </button>
+        </section>
+      </main>
+    );
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId.trim()) {
@@ -85,11 +101,11 @@ export const SapLoginPage: React.FC = () => {
       <header className="h-16 bg-white/95 backdrop-blur-md border-b border-slate-200/90 px-4 sm:px-8 flex items-center justify-between shadow-[0_1px_3px_0_rgba(0,0,0,0.03)] z-20 shrink-0">
         <div className="flex items-center gap-3">
           <img
-            src="https://gfl.co.in/assets/images/New_GFL-Logo29.webp"
+            src="./GFL-Logo.webp"
             alt="Gujarat Fluorochemicals Limited"
             className="h-8 w-auto object-contain"
             onError={(e) => {
-              (e.target as HTMLImageElement).src = './assets/GFL-Logo.webp';
+              (e.target as HTMLImageElement).style.visibility = 'hidden';
             }}
           />
           <div className="h-6 w-px bg-slate-200 mx-0.5"></div>
@@ -131,11 +147,11 @@ export const SapLoginPage: React.FC = () => {
           <div className="px-6 sm:px-8 pt-7 pb-6 text-center border-b border-slate-100/90 bg-gradient-to-b from-white to-sky-50/20">
             <div className="inline-flex p-3 bg-gradient-to-br from-white to-sky-50 border border-sky-100/90 rounded-2xl mb-3 shadow-[0_4px_12px_rgba(0,99,152,0.08),inset_0_1px_0_rgba(255,255,255,1)] items-center justify-center">
               <img
-                src="https://gfl.co.in/assets/images/New_GFL-Logo29.webp"
+                src="./GFL-Logo.webp"
                 alt="GFL Logo"
                 className="h-10 w-auto object-contain"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = './assets/GFL-Logo.webp';
+                  (e.target as HTMLImageElement).style.visibility = 'hidden';
                 }}
               />
             </div>

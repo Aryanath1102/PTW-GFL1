@@ -53,7 +53,6 @@ export const PlantInteractiveSvg: React.FC<PlantInteractiveSvgProps> = ({
   layers,
   theme,
   onHoverTargetChange,
-  onCursorCoordsChange,
   interactionMode,
   onTriggerPinDropModal,
   viewState,
@@ -93,74 +92,59 @@ export const PlantInteractiveSvg: React.FC<PlantInteractiveSvgProps> = ({
     };
   }, []);
 
-  // Handle Mouse Wheel for Zooming
-  const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
-      e.preventDefault();
-      const factor = e.deltaY < 0 ? 1.12 : 0.89;
-      setViewState((prev) => {
-        const newScale = Math.min(4.5, Math.max(0.55, prev.scale * factor));
-        const rect = containerRef.current?.getBoundingClientRect();
-        const cx = rect ? rect.width / 2 : 500;
-        const cy = rect ? rect.height / 2 : 300;
-        const newX = cx - (cx - prev.x) * (newScale / prev.scale);
-        const newY = cy - (cy - prev.y) * (newScale / prev.scale);
-        return { x: newX, y: newY, scale: newScale };
-      });
-    },
-    [setViewState]
-  );
+  // Keep navigation in viewBox units, regardless of the rendered map size.
+  const getViewportPoint = useCallback((clientX: number, clientY: number) => {
+    const matrix = svgRef.current?.getScreenCTM();
+    if (!matrix) return null;
+    return new DOMPoint(clientX, clientY).matrixTransform(matrix.inverse());
+  }, []);
 
-  // Mouse Down for Pan
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button !== 0) return; // Only main left click
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
+    const wheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const point = getViewportPoint(event.clientX, event.clientY);
+      if (!point) return;
+      setViewState(prev => {
+        const scale = Math.min(4.5, Math.max(0.55, prev.scale * (event.deltaY < 0 ? 1.12 : 1 / 1.12)));
+        return { scale, x: point.x - (point.x - prev.x) * scale / prev.scale, y: point.y - (point.y - prev.y) * scale / prev.scale };
+      });
+    };
+    element.addEventListener('wheel', wheel, { passive: false });
+    return () => element.removeEventListener('wheel', wheel);
+  }, [getViewportPoint, setViewState]);
+
+  const handlePointerDown = useCallback((event: React.PointerEvent) => {
+    if (event.button !== 0 || !event.isPrimary) return;
+    const point = getViewportPoint(event.clientX, event.clientY);
+    if (!point) return;
     setIsPanning(true);
     hasMovedRef.current = false;
-    panStartRef.current = {
-      x: e.clientX - viewState.x,
-      y: e.clientY - viewState.y
-    };
-  }, [viewState]);
+    panStartRef.current = { x: point.x - viewState.x, y: point.y - viewState.y };
+  }, [getViewportPoint, viewState]);
 
-  // Global Mouse Move & Mouse Up
   useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => {
-      // Update cursor coordinates if inside container
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        if (
-          e.clientX >= rect.left &&
-          e.clientX <= rect.right &&
-          e.clientY >= rect.top &&
-          e.clientY <= rect.bottom
-        ) {
-          const pt = getSvgCoordinates(e.clientX, e.clientY);
-          if (pt && pt.x >= 0 && pt.x <= 2000 && pt.y >= 0 && pt.y <= 1220) {
-            onCursorCoordsChange(pt);
-          }
-        }
-      }
-
-      if (!isPanning) return;
-      const dx = e.clientX - panStartRef.current.x;
-      const dy = e.clientY - panStartRef.current.y;
-      if (Math.abs(dx - viewState.x) > 4 || Math.abs(dy - viewState.y) > 4) {
-        hasMovedRef.current = true;
-      }
-      setViewState((prev) => ({ ...prev, x: dx, y: dy }));
+    if (!isPanning) return;
+    const move = (event: PointerEvent) => {
+      if (!event.isPrimary) return;
+      const point = getViewportPoint(event.clientX, event.clientY);
+      if (!point) return;
+      const x = point.x - panStartRef.current.x;
+      const y = point.y - panStartRef.current.y;
+      if (Math.hypot(x - viewState.x, y - viewState.y) > 4) hasMovedRef.current = true;
+      if (hasMovedRef.current) setViewState(prev => ({ ...prev, x, y }));
     };
-
-    const onMouseUp = () => {
-      setIsPanning(false);
-    };
-
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
+    const end = () => setIsPanning(false);
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
     return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', end);
+      window.removeEventListener('pointercancel', end);
     };
-  }, [isPanning, viewState, setViewState, getSvgCoordinates, onCursorCoordsChange]);
+  }, [isPanning, getViewportPoint, setViewState, viewState.x, viewState.y]);
 
   // Click on background canvas to pin-point or drop permit
   const handleCanvasClick = (e: React.MouseEvent) => {
@@ -186,8 +170,8 @@ export const PlantInteractiveSvg: React.FC<PlantInteractiveSvgProps> = ({
   return (
     <div
       ref={containerRef}
-      onWheel={handleWheel}
-      onMouseDown={handleMouseDown}
+      onPointerDown={handlePointerDown}
+      style={{ touchAction: 'none' }}
       onClick={handleCanvasClick}
       className={`flex-1 w-full h-full relative overflow-hidden select-none cursor-grab active:cursor-grabbing ${
         isDark ? 'dark-gis-paper' : 'cad-paper'
@@ -205,8 +189,8 @@ export const PlantInteractiveSvg: React.FC<PlantInteractiveSvgProps> = ({
           stroke-width: 3px !important;
         }
         .sd-block.selected {
-          filter: brightness(1.22) drop-shadow(0 0 14px rgba(245, 158, 11, 0.9));
-          stroke: #dc2626 !important;
+          filter: none;
+          stroke: #1d4ed8 !important;
           stroke-width: 4px !important;
           stroke-dasharray: none !important;
         }
@@ -238,7 +222,7 @@ export const PlantInteractiveSvg: React.FC<PlantInteractiveSvgProps> = ({
           50% { filter: brightness(1.6) drop-shadow(0 0 18px #f59e0b); }
         }
         .flash-highlight {
-          animation: blockFlash 0.7s ease-in-out 3;
+          animation: none;
         }
         .cad-paper {
           background-color: #f8fafc;
@@ -259,6 +243,8 @@ export const PlantInteractiveSvg: React.FC<PlantInteractiveSvgProps> = ({
       <svg
         ref={svgRef}
         id="plotPlanSvg"
+        role="img"
+        aria-label="Dahej plant safety districts, avenues and streets"
         viewBox="0 0 2000 1220"
         className="w-full h-full select-none"
       >

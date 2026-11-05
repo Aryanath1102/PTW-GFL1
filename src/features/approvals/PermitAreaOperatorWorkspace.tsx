@@ -190,15 +190,6 @@ export const PermitAreaOperatorWorkspace: React.FC<PermitAreaOperatorWorkspacePr
       setOffset(targetOffset);
       setSapConnected(true);
 
-      // Cache to localStorage for offline resilience
-      try {
-        if (typeof window !== 'undefined' && window.localStorage) {
-          window.localStorage.setItem(`ptw_area_operator_cache_${plant}`, JSON.stringify(data));
-        }
-      } catch {
-        // Ignore cache storage errors
-      }
-
       // Auto-select initial or first permit if none selected
       if (!selectedPermitNo && data.length > 0) {
         const preferred = data.find((p) => p.Status === 'ACCP' || p.Status === 'ISSU') || data.find((p) => p.Status === 'APPR') || data[0];
@@ -210,31 +201,9 @@ export const PermitAreaOperatorWorkspace: React.FC<PermitAreaOperatorWorkspacePr
     } catch (err: unknown) {
       if (err instanceof Error && err.name !== 'AbortError') {
         setSapConnected(false);
-        // Fallback to cached records if SAP is offline or off-VPN
-        try {
-          if (typeof window !== 'undefined' && window.localStorage) {
-            const cached = window.localStorage.getItem(`ptw_area_operator_cache_${plant}`);
-            if (cached) {
-              const parsed = JSON.parse(cached) as PermitInfoRecord[];
-              if (Array.isArray(parsed) && parsed.length > 0) {
-                setPermits(parsed);
-                setTotalCount(parsed.length);
-                if (!selectedPermitNo) {
-                  const preferred = parsed.find((p) => p.Status === 'ACCP' || p.Status === 'ISSU') || parsed.find((p) => p.Status === 'APPR') || parsed[0];
-                  setSelectedPermitNo(preferred.Permit_No);
-                  void loadPermitDetail(preferred.Permit_No, parsed);
-                }
-                toast.info('Using locally cached permits. Connect to GFL VPN to sync live SAP records.', {
-                  title: 'Offline Cache Active'
-                });
-                return;
-              }
-            }
-          }
-        } catch {
-          // Ignore parse errors
-        }
-
+        setPermits([]);
+        setSelectedPermitNo('');
+        setSelectedPermit(null);
         toast.error('Unable to fetch permit records from SAP. Please verify your VPN / network connection.', {
           title: 'SAP Connection Error'
         });
@@ -274,11 +243,9 @@ export const PermitAreaOperatorWorkspace: React.FC<PermitAreaOperatorWorkspacePr
     } catch (err: unknown) {
       setSapConnected(false);
       setDetailSyncWarning(
-        'Deep SAP checklist and gas records could not be retrieved. Basic permit header loaded. Connect to GFL VPN to sync live.'
+        'Permit details could not be loaded from SAP. Refresh before taking action.'
       );
-      if (!selectedPermit && matched) {
-        setSelectedPermit(createBasicPermitDossier(matched));
-      }
+      setSelectedPermit(null);
     } finally {
       setLoadingDetail(false);
     }
@@ -311,7 +278,7 @@ export const PermitAreaOperatorWorkspace: React.FC<PermitAreaOperatorWorkspacePr
 
   // Handle Area Operator Complete / Accept Submission via SAP RAP Bound Action: completeAreaOperator
   const handleCompleteAreaOperator = async () => {
-    if (!selectedPermit) return;
+    if (!selectedPermit || loadingDetail || detailSyncWarning) return;
 
     if (!hasAreaOperatorAuthorization) {
       toast.error('You do not have the required Area Operator (PTW_AREA_OPP) role to complete this action.', {
@@ -379,7 +346,7 @@ export const PermitAreaOperatorWorkspace: React.FC<PermitAreaOperatorWorkspacePr
 
   // Handle Area Operator Rejection Submission via SAP RAP Bound Action: rejectAreaOperator
   const handleRejectAreaOperator = async () => {
-    if (!selectedPermit) return;
+    if (!selectedPermit || loadingDetail || detailSyncWarning) return;
 
     if (!hasAreaOperatorAuthorization) {
       toast.error('You do not have the required Area Operator (PTW_AREA_OPP) role to reject permits.', {

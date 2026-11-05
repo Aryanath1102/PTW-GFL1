@@ -11,7 +11,7 @@ export const toSapChecklistPermitType = toSapPermitType;
 export { toSapPermitType };
 
 /**
- * Production verified fallback / offline questionnaire seed data
+ * Development-only questionnaire reference data
  * Sourced directly from SAP OData service zptw_services/0001/Checklist
  */
 export const FALLBACK_CHECKLISTS: Record<string, SapChecklistItem[]> = {
@@ -411,20 +411,24 @@ class ChecklistApi {
       }
 
       // If SAP returned empty array, check fallback seed
-      if (FALLBACK_CHECKLISTS[sapCode]) {
+      if (import.meta.env.DEV && FALLBACK_CHECKLISTS[sapCode]) {
         const fallback = FALLBACK_CHECKLISTS[sapCode];
         this.cache.set(sapCode, { timestamp: now, data: fallback });
         return fallback;
       }
 
+      if (!import.meta.env.DEV && ['CSE', 'W@H', 'ELEC', 'HOT'].includes(sapCode)) {
+        throw new Error('SAP compliance checklist is unavailable.');
+      }
       return [];
     } catch (error) {
       // In offline / dev / unauthenticated proxy environments, use fallback if available
-      if (FALLBACK_CHECKLISTS[sapCode]) {
+      if (import.meta.env.DEV && FALLBACK_CHECKLISTS[sapCode]) {
         const fallback = FALLBACK_CHECKLISTS[sapCode];
         this.cache.set(sapCode, { timestamp: now, data: fallback });
         return fallback;
       }
+      if (!import.meta.env.DEV) throw error;
       return [];
     }
   }

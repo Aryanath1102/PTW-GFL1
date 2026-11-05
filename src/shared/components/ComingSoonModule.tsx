@@ -149,11 +149,11 @@ export const ComingSoonModule: React.FC<ComingSoonModuleProps> = ({ module, user
 
         <div className="flex items-center gap-2 text-xs text-gray-500 font-mono">
           <img
-            src="https://gfl.co.in/assets/images/New_GFL-Logo29.webp"
+            src="./GFL-Logo.webp"
             alt="GFL"
             className="h-5 w-auto object-contain opacity-80"
             onError={(e) => {
-              (e.target as HTMLImageElement).src = './assets/GFL-Logo.webp';
+              (e.target as HTMLImageElement).style.visibility = 'hidden';
             }}
           />
           <span>Gujarat Fluorochemicals Limited </span>

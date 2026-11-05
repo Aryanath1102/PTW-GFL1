@@ -17,7 +17,7 @@ const result = await build({
   write: false,
   platform: 'node',
   format: 'cjs',
-  define: { 'import.meta.env': '{}' }
+  define: { 'import.meta.env': '{"DEV":true}' }
 });
 
 const compiled = { exports: {} };

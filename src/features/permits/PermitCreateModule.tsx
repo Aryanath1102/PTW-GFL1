@@ -513,7 +513,7 @@ export function getValidationTarget(
       stepName: 'Step 4: Crew Muster',
       fieldId: 'field-worker-name',
       fieldLabel: 'Crew Member Name & ID',
-      advice: 'Add at least one crew member with their employee ID or contractor company.'
+      advice: 'For any crew members added, complete their details and ensure the crew quantity matches the worker list.'
     };
   }
 
@@ -879,7 +879,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
 
   // Live Phone Number Validations (10-15 digits, standard mobile)
   const supvPhoneValidation = useMemo(
-    () => validatePhoneNumber(supvPhone, true),
+    () => validatePhoneNumber(supvPhone, false),
     [supvPhone]
   );
 
@@ -902,9 +902,9 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
   // New Isolation Point Inputs
 
   // SAP Live Config State (Dropdowns & F4 Value Help)
-  const [shiftOptions, setShiftOptions] = useState<SapConfigRecord[]>(FALLBACK_CONFIG_DATA.SHIFT || []);
-  const [deptOptions, setDeptOptions] = useState<SapConfigRecord[]>(FALLBACK_CONFIG_DATA.DEPARTMENT || []);
-  const [plantOptions, setPlantOptions] = useState<SapConfigRecord[]>(FALLBACK_CONFIG_DATA.PLANT || []);
+  const [shiftOptions, setShiftOptions] = useState<SapConfigRecord[]>(import.meta.env.DEV ? (FALLBACK_CONFIG_DATA.SHIFT || []) : []);
+  const [deptOptions, setDeptOptions] = useState<SapConfigRecord[]>(import.meta.env.DEV ? (FALLBACK_CONFIG_DATA.DEPARTMENT || []) : []);
+  const [plantOptions, setPlantOptions] = useState<SapConfigRecord[]>(import.meta.env.DEV ? (FALLBACK_CONFIG_DATA.PLANT || []) : []);
   const [permitTypeOptions, setPermitTypeOptions] = useState<SapConfigRecord[]>([]);
   const [availableIsolations, setAvailableIsolations] = useState<string[]>([]);
   const [ppeCatalog, setPpeCatalog] = useState<SapConfigRecord[]>([]);
@@ -950,7 +950,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
     discardDraft
   } = useFormDraft<any>({
     draftKey: 'permit_create',
-    userId: user?.id || 'guest',
+    userId: `${user?.client || 'auto'}:${user?.id || 'guest'}`,
     debounceMs: 1200
   });
 
@@ -1203,7 +1203,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
         ? categoryQuestions[sap]
         : (categoryQuestions[cat.code] && categoryQuestions[cat.code].length > 0)
         ? categoryQuestions[cat.code]
-        : (FALLBACK_CHECKLISTS[sap] || FALLBACK_CHECKLISTS[cat.code] || []);
+        : (import.meta.env.DEV ? (FALLBACK_CHECKLISTS[sap] || FALLBACK_CHECKLISTS[cat.code] || []) : []);
       const answers = categoryAnswers[sap] || categoryAnswers[cat.code] || {};
       let answered = 0;
       questions.forEach((q) => {
@@ -1639,24 +1639,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
           };
         }
       }
-      if (!supvName.trim()) {
-        return {
-          valid: false,
-          message: 'Supervisor Name is mandatory.',
-          fieldId: 'field-supv-name',
-          targetTab: 'general'
-        };
-      }
-      if (!supvPhone.trim()) {
-        setSupvPhoneTouched(true);
-        return {
-          valid: false,
-          message: 'Supervisor Phone is mandatory. Enter a valid 10-digit mobile number.',
-          fieldId: 'field-supv-phone',
-          targetTab: 'general'
-        };
-      }
-      const supvPhoneVal = validatePhoneNumber(supvPhone, true);
+      const supvPhoneVal = validatePhoneNumber(supvPhone, false);
       if (!supvPhoneVal.isValid) {
         setSupvPhoneTouched(true);
         return {
@@ -1894,42 +1877,6 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
         }
       }
     }
-    if (tab === 'workers') {
-      if (workers.length === 0) {
-        if (newWorkerName.trim() && newWorkerPhone.trim()) {
-          const phoneCheck = validatePhoneNumber(newWorkerPhone, true);
-          if (phoneCheck.isValid) {
-            const hasId = (newWorkerType === 'EMP' && newWorkerEmpId.trim()) || (newWorkerType === 'CONT' && newWorkerContractorName.trim());
-            if (hasId) {
-              const newWorker: WorkerRecord = {
-                PermitNo: permitNo,
-                ItemNo: '1',
-                WorkerTypeCode: newWorkerType,
-                WorkerName: newWorkerName.toUpperCase(),
-                PhoneNo: newWorkerPhone.trim(),
-                ContractorId: '',
-                ContractorName: newWorkerType === 'CONT' ? newWorkerContractorName.trim() : '',
-                EmpId: newWorkerType === 'EMP' ? newWorkerEmpId.trim() : '',
-                Shift: shift
-              };
-              setWorkers([newWorker]);
-              setPersonsQty(1);
-              setNewWorkerName('');
-              setNewWorkerPhone('');
-              setNewWorkerEmpId('');
-              setNewWorkerContractorName('');
-              return { valid: true };
-            }
-          }
-        }
-        return {
-          valid: false,
-          message: 'Add at least one crew member in Crew Muster before proceeding.',
-          fieldId: 'field-worker-name',
-          targetTab: 'workers'
-        };
-      }
-    }
     if (tab === 'ppe') {
       if (newPpeCode.trim() && newPpeDescription.trim()) {
         const nextNo = String(ppeItems.length + 1);
@@ -1972,9 +1919,20 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
           ? categoryQuestions[sapCat]
           : (categoryQuestions[catCode] && categoryQuestions[catCode].length > 0)
           ? categoryQuestions[catCode]
-          : (FALLBACK_CHECKLISTS[sapCat] || FALLBACK_CHECKLISTS[catCode] || []);
+          : (import.meta.env.DEV ? (FALLBACK_CHECKLISTS[sapCat] || FALLBACK_CHECKLISTS[catCode] || []) : []);
 
         const total = questions.length;
+        if (!import.meta.env.DEV && (
+          (categoryQuestions[sapCat] === undefined && categoryQuestions[catCode] === undefined) ||
+          (['CSE', 'W@H', 'ELEC', 'HOT'].includes(sapCat) && total === 0)
+        )) {
+          return {
+            valid: false,
+            message: 'SAP compliance checklist is unavailable. Reload the checklist before submitting.',
+            fieldId: `checklist-cat-${catCode}`,
+            targetTab: 'ppe'
+          };
+        }
         if (total > 0) {
           const ansMap = categoryAnswers[sapCat] || categoryAnswers[catCode] || {};
           let answered = 0;
@@ -2546,7 +2504,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
 
       // Cache newly created permit for immediate discovery in Gas Tester and Isolation modules
       try {
-        if (typeof window !== 'undefined' && window.localStorage) {
+        if (import.meta.env.DEV && typeof window !== 'undefined' && window.localStorage) {
           const stored = JSON.parse(window.localStorage.getItem('ptw_recent_created_permits') || '[]');
           const newEntry = {
             Permit_No: response.Permit_No,
@@ -3456,7 +3414,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                 icon="pin_drop"
               >
                 <div className="space-y-4 font-sans text-xs">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                       <label className="ptw-label">
                         Plant (Werks) <span className="text-red-500">*</span>
@@ -3521,6 +3479,9 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                       />
                     </div>
 
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                     <div>
                       <div className="flex items-center justify-between">
                         <label className="ptw-label">Functional Location (Tplnr)</label>
@@ -3538,20 +3499,19 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                         placeholder="e.g. GFL-DHJ-U04-CDU"
                       />
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="ptw-label">
-                      Job Description (JobDesc) <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      id="field-job-desc"
-                      value={jobDesc}
-                      onChange={(e) => setJobDesc(e.target.value)}
-                      rows={2}
-                      className="ptw-input font-sans"
-                      placeholder="Describe the detailed technical work to be performed..."
-                    />
+                    <div>
+                      <label className="ptw-label">
+                        Job Description (JobDesc) <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        id="field-job-desc"
+                        value={jobDesc}
+                        onChange={(e) => setJobDesc(e.target.value)}
+                        rows={2}
+                        className="ptw-input font-sans"
+                        placeholder="Describe the detailed technical work to be performed..."
+                      />
+                    </div>
                   </div>
                 </div>
               </SectionCard>
@@ -3666,18 +3626,17 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                     <div>
                       <label className="ptw-label flex items-center justify-between">
                         <span>
-                          Supervisor Name <span className="text-red-500 font-bold">*</span>
+                          Supervisor Name (optional)
                         </span>
                         <span className="text-[10px] text-slate-400 font-mono">On-site Lead</span>
                       </label>
                       <input
                         id="field-supv-name"
                         type="text"
-                        required
                         maxLength={60}
                         value={supvName}
                         onChange={(e) => setSupvName(e.target.value)}
-                        placeholder="e.g. RAJESH PATEL"
+                        placeholder="e.g. MANISH SHARMA"
                         className="ptw-input uppercase"
                       />
                     </div>
@@ -3685,22 +3644,21 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <label className="ptw-label mb-0 flex items-center gap-1">
-                          <span>Supervisor Phone</span>
-                          <span className="text-red-500 font-bold">*</span>
+                          <span>Supervisor Phone (optional)</span>
                         </label>
                         <span
-                          className={`text-[10px] font-mono px-1.5 py-0.5 rounded border transition-colors ${supvPhoneValidation.isValid
+                          className={`text-[10px] font-mono px-1.5 py-0.5 rounded border transition-colors ${supvPhone.trim() && supvPhoneValidation.isValid
                               ? 'bg-emerald-50 text-emerald-700 border-emerald-300 font-bold'
                               : supvPhone.trim().length > 0
                                 ? 'bg-amber-50 text-amber-800 border-amber-300 font-medium'
                                 : 'bg-slate-100 text-slate-500 border-slate-200'
                             }`}
                         >
-                          {supvPhoneValidation.isValid
+                          {supvPhone.trim() && supvPhoneValidation.isValid
                             ? `✓ ${supvPhoneValidation.digitCount} digits`
                             : supvPhone.trim().length > 0
                               ? `${supvPhoneValidation.digitCount}/10 digits`
-                              : '10 digits required'}
+                              : 'Optional'}
                         </span>
                       </div>
                       <div className="relative">
@@ -3717,7 +3675,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                           placeholder="9876543210"
                           className={`ptw-input font-mono text-xs pr-8 transition-colors ${supvPhoneTouched && !supvPhoneValidation.isValid
                               ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20 bg-rose-50/20'
-                              : supvPhoneValidation.isValid
+                              : supvPhone.trim() && supvPhoneValidation.isValid
                                 ? 'border-emerald-400 focus:border-emerald-500 focus:ring-emerald-500/20'
                                 : ''
                             }`}
@@ -3753,7 +3711,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                         type="text"
                         value={safetyOfficer}
                         onChange={(e) => setSafetyOfficer(e.target.value)}
-                        placeholder="e.g. AMIT SHARMA"
+                        placeholder="e.g. ASIM DAS"
                         className="ptw-input"
                       />
                     </div>
@@ -3761,7 +3719,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                     <div>
                       <label className="ptw-label flex items-center justify-between">
                         <span>
-                          Authorized Crew Qty <span className="text-red-500 font-bold">*</span>
+                          Authorized Crew Qty (optional)
                         </span>
                         <span className="text-[10px] text-slate-400 font-mono">
                           Synced ({workers.length} crew)
@@ -3775,7 +3733,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                         title="Automatically calculated from workers mustered in Step 4"
                       />
                       <span className="text-[10px] text-slate-400 mt-1 block">
-                        Synced with Crew Muster (Step 4).
+                        Optional at creation. Synced with Crew Muster (Step 4).
                       </span>
                     </div>
                   </div>
@@ -4522,7 +4480,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                             ? categoryQuestions[sapCat]
                             : (categoryQuestions[catCode] && categoryQuestions[catCode].length > 0)
                             ? categoryQuestions[catCode]
-                            : (FALLBACK_CHECKLISTS[sapCat] || FALLBACK_CHECKLISTS[catCode] || []);
+                            : (import.meta.env.DEV ? (FALLBACK_CHECKLISTS[sapCat] || FALLBACK_CHECKLISTS[catCode] || []) : []);
                           const qCount = questions.length;
                           const pStat = checklistProgressMap[sapCat] || checklistProgressMap[catCode];
                           const answered = pStat?.answered || 0;
@@ -4557,7 +4515,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                         ? categoryQuestions[sapCat]
                         : (categoryQuestions[catCode] && categoryQuestions[catCode].length > 0)
                         ? categoryQuestions[catCode]
-                        : (FALLBACK_CHECKLISTS[sapCat] || FALLBACK_CHECKLISTS[catCode] || []);
+                        : (import.meta.env.DEV ? (FALLBACK_CHECKLISTS[sapCat] || FALLBACK_CHECKLISTS[catCode] || []) : []);
                       const total = questions.length;
                       if (total === 0) return false;
                       const ansMap = categoryAnswers[sapCat] || categoryAnswers[catCode] || {};

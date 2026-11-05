@@ -1,6 +1,10 @@
+import { activePtwRoles, normalizePtwRoles } from './ptwAccess';
+import { configApi } from '../api/modules/config.api';
+import { checklistApi } from '../api/modules/checklist.api';
+import { clearProtectedStorage } from './clearProtectedStorage';
 import { getDefaultSapClient } from './sapClient';
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { odataClient, authApi, adminApi } from '../api';
+import { odataClient, authApi } from '../api';
 
 export interface SapUserInfoRecord {
   UserId: string;
@@ -54,7 +58,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     title: 'Permit Create / Permit Issuer',
     subtitle: 'Hazard JSA, PPE Matrix & Work Scope Creation',
     icon: 'note_add',
-    requiredRoles: ['ZPTW_REQUESTER', 'PTW_REQUESTER', 'ZPTW_ADMIN', 'PTW_ADMIN', 'Z_MOBILE_PI_SHEET', 'YSM-XX-PFCG-PTW-APP-XXXXXXXXXX'],
+    requiredRoles: ['ZPTW_ISSU', 'PTW_ISSU', 'ZPTW_ADMIN', 'PTW_ADMIN'],
     badge: 'Requester'
   },
   {
@@ -62,19 +66,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     title: 'Permit Display',
     subtitle: 'Permit Sheet, P&ID Schematic & Real-time Status',
     icon: 'description',
-    requiredRoles: [
-      'ZPTW_REQUESTER', 'PTW_REQUESTER',
-      'ZPTW_HOLDER', 'PTW_HOLDER', 'PTW_HOLD',
-      'ZPTW_APPROVER', 'PTW_APPROVER', 'PTW_APPR1', 'PTW_APPR2', 'PTW_APPR3',
-      'ZPTW_ISSUER', 'PTW_ISSUER', 'PTW_ISSU',
-      'ZPTW_ACCEPTOR', 'PTW_ACCEPTOR', 'PTW_ACCP',
-      'ZPTW_GAS_TESTER', 'PTW_GAS_TESTER', 'PTW_GAS',
-      'ZPTW_ISOLATOR', 'PTW_ISOLATOR', 'ZPTW_ISO_REQ', 'PTW_ISO_REQ',
-      'ZPTW_AREA_OWNER', 'PTW_AREA_OWNER', 'PTW_AREA_OPP', 'PTW_AOPR',
-      'ZPTW_SAFETY_OFFICER', 'PTW_SAFETY_OFFICER', 'PTW_SAFE',
-      'ZPTW_ADMIN', 'PTW_ADMIN',
-      'Z_MOBILE_PI_SHEET', 'YSM-XX-PFCG-PTW-APP-XXXXXXXXXX'
-    ],
+    requiredRoles: ['ZPTW_ISSU', 'PTW_ISSU', 'ZPTW_HOLDER', 'PTW_HOLDER', 'PTW_HOLD', 'ZPTW_APPROVER', 'PTW_APPROVER', 'PTW_APPR1', 'PTW_APPR2', 'PTW_APPR3', 'ZPTW_ISSUER', 'PTW_ISSUER', 'ZPTW_ACCEPTOR', 'PTW_ACCEPTOR', 'PTW_ACCP', 'ZPTW_GAS_TESTER', 'PTW_GAS_TESTER', 'PTW_GAS', 'ZPTW_ISOLATOR', 'PTW_ISOLATOR', 'ZPTW_ISO_REQ', 'PTW_ISO_REQ', 'ZPTW_AREA_OWNER', 'PTW_AREA_OWNER', 'PTW_AREA_OPP', 'PTW_AOPR', 'ZPTW_SAFETY_OFFICER', 'PTW_SAFETY_OFFICER', 'PTW_SAFE', 'ZPTW_ADMIN', 'PTW_ADMIN'],
     badge: 'Overview'
   },
   {
@@ -82,7 +74,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     title: 'Isolation Create',
     subtitle: 'Zero-Energy Breaker, Valve Lock & Blind Flange Registry',
     icon: 'lock_reset',
-    requiredRoles: ['ZPTW_ISOLATOR', 'PTW_ISOLATOR', 'ZPTW_ISO_REQ', 'PTW_ISO_REQ', 'ZPTW_AREA_OWNER', 'PTW_AREA_OWNER', 'PTW_AREA_OPP', 'PTW_AOPR', 'ZPTW_ADMIN', 'PTW_ADMIN', 'Z_MOBILE_PI_SHEET', 'YSM-XX-PFCG-PTW-APP-XXXXXXXXXX'],
+    requiredRoles: ['ZPTW_ISOLATOR', 'PTW_ISOLATOR', 'ZPTW_ISO_REQ', 'PTW_ISO_REQ', 'ZPTW_AREA_OWNER', 'PTW_AREA_OWNER', 'PTW_AREA_OPP', 'PTW_AOPR', 'ZPTW_ADMIN', 'PTW_ADMIN'],
     badge: 'Isolation'
   },
   {
@@ -90,7 +82,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     title: 'Isolation Display',
     subtitle: 'Zero-Energy Breaker, Valve Lock & Blind Flange Registry',
     icon: 'lock_reset',
-    requiredRoles: ['ZPTW_ISOLATOR', 'PTW_ISOLATOR', 'ZPTW_ISO_REQ', 'PTW_ISO_REQ', 'ZPTW_AREA_OWNER', 'PTW_AREA_OWNER', 'PTW_AREA_OPP', 'PTW_AOPR', 'ZPTW_ADMIN', 'PTW_ADMIN', 'Z_MOBILE_PI_SHEET', 'YSM-XX-PFCG-PTW-APP-XXXXXXXXXX'],
+    requiredRoles: ['ZPTW_ISOLATOR', 'PTW_ISOLATOR', 'ZPTW_ISO_REQ', 'PTW_ISO_REQ', 'ZPTW_AREA_OWNER', 'PTW_AREA_OWNER', 'PTW_AREA_OPP', 'PTW_AOPR', 'ZPTW_ADMIN', 'PTW_ADMIN'],
     badge: 'Isolation'
   },
   {
@@ -98,7 +90,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     title: 'Permit Approver',
     subtitle: 'Multi-Tier Authorization Chain & Digital Signatures',
     icon: 'draw',
-    requiredRoles: ['ZPTW_APPROVER', 'PTW_APPROVER', 'PTW_APPR1', 'PTW_APPR2', 'PTW_APPR3', 'ZPTW_ADMIN', 'PTW_ADMIN', 'Z_MOBILE_PI_SHEET', 'YSM-XX-PFCG-PTW-APP-XXXXXXXXXX'],
+    requiredRoles: ['ZPTW_APPROVER', 'PTW_APPROVER', 'PTW_APPR1', 'PTW_APPR2', 'PTW_APPR3', 'ZPTW_ADMIN', 'PTW_ADMIN'],
     badge: 'Approver'
   },
   {
@@ -106,14 +98,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     title: 'Permit Acceptor',
     subtitle: 'Toolbox Briefing, Section K Agreement & Field Acceptance',
     icon: 'verified',
-    requiredRoles: [
-      'ZPTW_ISSUER', 'PTW_ISSUER', 'PTW_ISSU',
-      'ZPTW_ACCEPTOR', 'PTW_ACCEPTOR', 'PTW_ACCP',
-      'ZPTW_HOLDER', 'PTW_HOLDER', 'PTW_HOLD',
-      'ZPTW_SAFETY_OFFICER', 'PTW_SAFETY_OFFICER', 'PTW_SAFE',
-      'ZPTW_ADMIN', 'PTW_ADMIN',
-      'Z_MOBILE_PI_SHEET', 'YSM-XX-PFCG-PTW-APP-XXXXXXXXXX'
-    ],
+    requiredRoles: ['ZPTW_ISSUER', 'PTW_ISSUER', 'PTW_ISSU', 'ZPTW_ACCEPTOR', 'PTW_ACCEPTOR', 'PTW_ACCP', 'ZPTW_HOLDER', 'PTW_HOLDER', 'PTW_HOLD', 'ZPTW_SAFETY_OFFICER', 'PTW_SAFETY_OFFICER', 'PTW_SAFE', 'ZPTW_ADMIN', 'PTW_ADMIN'],
     badge: 'Acceptor'
   },
   {
@@ -121,7 +106,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     title: 'Permit Area Operator',
     subtitle: 'On-Site Worker Ledger, Suspension & Site Restoration',
     icon: 'engineering',
-    requiredRoles: ['ZPTW_AREA_OWNER', 'PTW_AREA_OWNER', 'PTW_AREA_OPP', 'PTW_AOPR', 'ZPTW_REQUESTER', 'PTW_REQUESTER', 'ZPTW_ADMIN', 'PTW_ADMIN', 'Z_MOBILE_PI_SHEET', 'YSM-XX-PFCG-PTW-APP-XXXXXXXXXX'],
+    requiredRoles: ['ZPTW_AREA_OWNER', 'PTW_AREA_OWNER', 'PTW_AREA_OPP', 'PTW_AOPR', 'ZPTW_ISSU', 'PTW_ISSU', 'ZPTW_ADMIN', 'PTW_ADMIN'],
     badge: 'Area Owner'
   },
   {
@@ -129,7 +114,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     title: 'Permit Holder',
     subtitle: 'On-Site Worker Ledger, Suspension & Site Restoration',
     icon: 'engineering',
-    requiredRoles: ['ZPTW_HOLDER', 'PTW_HOLDER', 'PTW_HOLD', 'ZPTW_REQUESTER', 'PTW_REQUESTER', 'ZPTW_ADMIN', 'PTW_ADMIN', 'Z_MOBILE_PI_SHEET', 'YSM-XX-PFCG-PTW-APP-XXXXXXXXXX'],
+    requiredRoles: ['ZPTW_HOLDER', 'PTW_HOLDER', 'PTW_HOLD', 'ZPTW_ISSU', 'PTW_ISSU', 'ZPTW_ADMIN', 'PTW_ADMIN'],
     badge: 'Holder'
   },
   {
@@ -137,7 +122,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     title: 'Gas Tester',
     subtitle: 'Atmospheric O2, LEL%, H2S, CO Calibration & Logs',
     icon: 'air',
-    requiredRoles: ['ZPTW_GAS_TESTER', 'PTW_GAS_TESTER', 'PTW_GAS', 'ZPTW_SAFETY_OFFICER', 'PTW_SAFETY_OFFICER', 'PTW_SAFE', 'ZPTW_ADMIN', 'PTW_ADMIN', 'Z_MOBILE_PI_SHEET', 'YSM-XX-PFCG-PTW-APP-XXXXXXXXXX'],
+    requiredRoles: ['ZPTW_GAS_TESTER', 'PTW_GAS_TESTER', 'PTW_GAS', 'ZPTW_SAFETY_OFFICER', 'PTW_SAFETY_OFFICER', 'PTW_SAFE', 'ZPTW_ADMIN', 'PTW_ADMIN'],
     badge: 'Gas Tester'
   },
   {
@@ -145,19 +130,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     title: 'Report',
     subtitle: 'Permit Registers, LOTO Logs & Safety Compliance Analytics',
     icon: 'bar_chart',
-    requiredRoles: [
-      'ZPTW_REQUESTER', 'PTW_REQUESTER',
-      'ZPTW_HOLDER', 'PTW_HOLDER', 'PTW_HOLD',
-      'ZPTW_APPROVER', 'PTW_APPROVER', 'PTW_APPR1', 'PTW_APPR2', 'PTW_APPR3',
-      'ZPTW_ISSUER', 'PTW_ISSUER', 'PTW_ISSU',
-      'ZPTW_ACCEPTOR', 'PTW_ACCEPTOR', 'PTW_ACCP',
-      'ZPTW_SAFETY_OFFICER', 'PTW_SAFETY_OFFICER', 'PTW_SAFE',
-      'ZPTW_ISOLATOR', 'PTW_ISOLATOR', 'ZPTW_ISO_REQ', 'PTW_ISO_REQ',
-      'ZPTW_AREA_OWNER', 'PTW_AREA_OWNER', 'PTW_AREA_OPP', 'PTW_AOPR',
-      'ZPTW_GAS_TESTER', 'PTW_GAS_TESTER', 'PTW_GAS',
-      'ZPTW_ADMIN', 'PTW_ADMIN',
-      'Z_MOBILE_PI_SHEET', 'YSM-XX-PFCG-PTW-APP-XXXXXXXXXX'
-    ],
+    requiredRoles: ['ZPTW_ISSU', 'PTW_ISSU', 'ZPTW_HOLDER', 'PTW_HOLDER', 'PTW_HOLD', 'ZPTW_APPROVER', 'PTW_APPROVER', 'PTW_APPR1', 'PTW_APPR2', 'PTW_APPR3', 'ZPTW_ISSUER', 'PTW_ISSUER', 'ZPTW_ACCEPTOR', 'PTW_ACCEPTOR', 'PTW_ACCP', 'ZPTW_SAFETY_OFFICER', 'PTW_SAFETY_OFFICER', 'PTW_SAFE', 'ZPTW_ISOLATOR', 'PTW_ISOLATOR', 'ZPTW_ISO_REQ', 'PTW_ISO_REQ', 'ZPTW_AREA_OWNER', 'PTW_AREA_OWNER', 'PTW_AREA_OPP', 'PTW_AOPR', 'ZPTW_GAS_TESTER', 'PTW_GAS_TESTER', 'PTW_GAS', 'ZPTW_ADMIN', 'PTW_ADMIN'],
     badge: 'Reports'
   },
   {
@@ -165,19 +138,7 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     title: 'Safety Districts & Plant Map',
     subtitle: 'Interactive Dahej Demarcation Layout, 26 Districts & Road Grid',
     icon: 'map',
-    requiredRoles: [
-      'ZPTW_REQUESTER', 'PTW_REQUESTER',
-      'ZPTW_HOLDER', 'PTW_HOLDER', 'PTW_HOLD',
-      'ZPTW_APPROVER', 'PTW_APPROVER', 'PTW_APPR1', 'PTW_APPR2', 'PTW_APPR3',
-      'ZPTW_ISSUER', 'PTW_ISSUER', 'PTW_ISSU',
-      'ZPTW_ACCEPTOR', 'PTW_ACCEPTOR', 'PTW_ACCP',
-      'ZPTW_SAFETY_OFFICER', 'PTW_SAFETY_OFFICER', 'PTW_SAFE',
-      'ZPTW_ISOLATOR', 'PTW_ISOLATOR', 'ZPTW_ISO_REQ', 'PTW_ISO_REQ',
-      'ZPTW_AREA_OWNER', 'PTW_AREA_OWNER', 'PTW_AREA_OPP', 'PTW_AOPR',
-      'ZPTW_GAS_TESTER', 'PTW_GAS_TESTER', 'PTW_GAS',
-      'ZPTW_ADMIN', 'PTW_ADMIN',
-      'Z_MOBILE_PI_SHEET', 'YSM-XX-PFCG-PTW-APP-XXXXXXXXXX'
-    ],
+    requiredRoles: ['ZPTW_ISSU', 'PTW_ISSU', 'ZPTW_HOLDER', 'PTW_HOLDER', 'PTW_HOLD', 'ZPTW_APPROVER', 'PTW_APPROVER', 'PTW_APPR1', 'PTW_APPR2', 'PTW_APPR3', 'ZPTW_ISSUER', 'PTW_ISSUER', 'ZPTW_ACCEPTOR', 'PTW_ACCEPTOR', 'PTW_ACCP', 'ZPTW_SAFETY_OFFICER', 'PTW_SAFETY_OFFICER', 'PTW_SAFE', 'ZPTW_ISOLATOR', 'PTW_ISOLATOR', 'ZPTW_ISO_REQ', 'PTW_ISO_REQ', 'ZPTW_AREA_OWNER', 'PTW_AREA_OWNER', 'PTW_AREA_OPP', 'PTW_AOPR', 'ZPTW_GAS_TESTER', 'PTW_GAS_TESTER', 'PTW_GAS', 'ZPTW_ADMIN', 'PTW_ADMIN'],
     badge: 'Site Map'
   },
   {
@@ -264,6 +225,7 @@ export const SapAuthProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [error, setError] = useState<string | null>(null);
   const [activeModule, setActiveModule] = useState<ModuleId>('permit-create');
   const restoreControllerRef = React.useRef<AbortController | null>(null);
+  const loginAttemptRef = React.useRef(0);
 
   const skipSessionRestore = () => {
     if (restoreControllerRef.current) {
@@ -273,13 +235,10 @@ export const SapAuthProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const computeUnlockedModules = (roles: string[]): ModuleId[] => {
-    // SAP-returned admin and enterprise PFCG login roles unlock modules for navigation in launchpad.
-    // Functional actions (approval, acceptance, area clearance) remain protected by /UserRole.
+    // Only active PTW administrators receive all modules.
     if (
       roles.includes('ZPTW_ADMIN') ||
-      roles.includes('PTW_ADMIN') ||
-      roles.includes('Z_MOBILE_PI_SHEET') ||
-      roles.includes('YSM-XX-PFCG-PTW-APP-XXXXXXXXXX')
+      roles.includes('PTW_ADMIN')
     ) {
       return MODULE_REGISTRY.map((m) => m.id);
     }
@@ -318,12 +277,7 @@ export const SapAuthProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   /**
    * 1. Lifecycle Hook: Auto-restore session from SAP environment on app mount.
-   * Priority resolution:
-   *   Priority 1: SAP Fiori Launchpad (FLP Container Shell)
-   *   Priority 2: Standalone BSP Injected variables or URL parameters (?sap-user=...)
-   *   Priority 3: Active sessionStorage (F5 page refresh)
-   *   Priority 4: SAP Startup Service (/sap/bc/ui2/start_up & /sap/bc/ui2/user)
-   *   Priority 5: Remembered user / default user verified against active SAP session cookies
+   * Identity is always verified through the current SAP server session.
    */
   useEffect(() => {
     const controller = new AbortController();
@@ -338,87 +292,7 @@ export const SapAuthProvider: React.FC<{ children: React.ReactNode }> = ({ child
       try {
         sessionStorage.removeItem('gfl_ptw_user_session_v1');
 
-        // Priority 1: If hosted inside SAP Fiori Launchpad (FLP Container Shell)
-        const flpContainerUser = window.sap?.ushell?.Container?.getUser?.();
-        if (flpContainerUser) {
-          const flpUserId = flpContainerUser.getId();
-          if (flpUserId) {
-            console.info(`[SapAuth] Detected SAP Fiori Launchpad session for user: ${flpUserId}`);
-            const ok = await login({ userId: flpUserId, }, { silent: true, signal: controller.signal });
-            if (ok || controller.signal.aborted) return;
-          }
-        }
-
-        // Priority 2: BSP Server-Side Injected Variables or URL Parameters
-        const bspInjectedUser =
-          window.SAP_CURRENT_USER ||
-          window.SY_UNAME ||
-          window.__SAP_USER__;
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlUser = urlParams.get('sap-user') || urlParams.get('sap-user-id') || urlParams.get('user');
-        const candidateDirectUser = (bspInjectedUser || urlUser || '').trim().toUpperCase();
-        const candidateDirectClient =
-          getDefaultSapClient();
-        const candidateDirectLang = urlParams.get('sap-language') || 'EN';
-
-        if (candidateDirectUser && !candidateDirectUser.includes('<%')) {
-          console.info(`[SapAuth] Detected BSP / URL user: ${candidateDirectUser}`);
-          const ok = await login({
-            userId: candidateDirectUser,
-            client: candidateDirectClient,
-            language: candidateDirectLang
-          }, { silent: true, signal: controller.signal });
-          if (ok || controller.signal.aborted) return;
-        }
-
-        // Priority 3: Check sessionStorage for persisted session (F5 page refresh)
-        const rawSession = sessionStorage.getItem(SESSION_STORAGE_KEY);
-        if (rawSession) {
-          const parsedSession: StoredUserSession = JSON.parse(rawSession);
-          const now = Date.now();
-          const isIdleExpired = now - parsedSession.timestamp > SESSION_IDLE_TIMEOUT_MS;
-
-          if (!isIdleExpired && parsedSession.user) {
-            // Revalidate against SAP; browser storage is not proof of authentication.
-            const ok = await login({
-              userId: parsedSession.user.id,
-              client: getDefaultSapClient(),
-              language: parsedSession.language
-            }, { silent: true, signal: controller.signal });
-            if (ok || controller.signal.aborted) return;
-          } else if (isIdleExpired) {
-            sessionStorage.removeItem(SESSION_STORAGE_KEY);
-            setError('Your SAP session has timed out due to inactivity. Please log on again.');
-          }
-        }
-
-        // Priority 4: Standalone SAP BSP Session Discovery (/sap/bc/ui2/start_up & /sap/bc/ui2/user)
-        // When deployed to BSP, user already authenticated with SAP ICF at the host URL.
-        const defaultClient = getDefaultSapClient();
-        const startupUser = await authApi.fetchStartupUser(defaultClient, controller.signal);
-        if (controller.signal.aborted) return;
-        if (startupUser && startupUser.id) {
-          console.info(`[SapAuth] Detected standalone SAP BSP session for user: ${startupUser.id}`);
-          const ok = await login({
-            userId: startupUser.id,
-            client: startupUser.client || defaultClient,
-            language: startupUser.language || 'EN'
-          }, { silent: true, signal: controller.signal });
-          if (ok || controller.signal.aborted) return;
-        }
-
-        // Priority 5: Remembered User ID or Default Initial User ID with Active Session Validation
-        // If the user previously logged in, or VITE_INITIAL_USER_ID is set:
-        // Test if the active SAP cookie session can authenticate this user without password.
-        const rememberedId = getRememberedUserId();
-        const initialId = import.meta.env.VITE_INITIAL_USER_ID || '';
-        const candidateFallback = (rememberedId || initialId).trim().toUpperCase();
-
-        if (candidateFallback) {
-          console.info(`[SapAuth] Attempting SSO session validation for candidate user: ${candidateFallback}`);
-          const ok = await login({ userId: candidateFallback, client: defaultClient }, { silent: true, signal: controller.signal });
-          if (ok || controller.signal.aborted) return;
-        }
+        await login({ userId: '', client: getDefaultSapClient() }, { silent: true, signal: controller.signal });
       } catch (err) {
         console.warn('[SapAuth] Session restoration error:', err);
         try { sessionStorage.removeItem(SESSION_STORAGE_KEY); } catch { /* Storage may be blocked. */ }
@@ -529,149 +403,40 @@ export const SapAuthProvider: React.FC<{ children: React.ReactNode }> = ({ child
     options?: { silent?: boolean; signal?: AbortSignal }
   ): Promise<boolean> => {
     if (options?.signal?.aborted) return false;
+    const attempt = ++loginAttemptRef.current;
+    const cancelled = () => options?.signal?.aborted || attempt !== loginAttemptRef.current;
     if (!options?.silent) {
       setLoading(true);
       setError(null);
     }
-    const targetId = credentials.userId.trim().toUpperCase();
+    let targetId = credentials.userId.trim().toUpperCase();
     const client = credentials.client || getDefaultSapClient();
     const lang = credentials.language || 'EN';
     try {
-      if (!targetId) throw new Error('Enter your SAP user ID.');
       odataClient.clearCredentials();
       odataClient.setClient(client);
-      odataClient.setCredentials(targetId, credentials.password);
-      const [records, roleEntries, pfcgRecords] = await Promise.all([
-        authApi.fetchUserInfo(targetId, client, options?.signal).catch(() => []),
-        authApi.fetchUserRoles(targetId, client, options?.signal).catch(() => []),
-        adminApi.getPFCGUsers(options?.signal)
-          .then(list => list.filter(u => u.SAPUser?.trim().toUpperCase() === targetId))
-          .catch(() => [])
-      ]);
-
-      if (options?.signal?.aborted) return false;
-
-      // Extract raw roles from userinfo, live UserRole entity sets, and SAP /PFCGUsers.
-      // Enterprise PFCG roles (such as Z_MOBILE_PI_SHEET and YSM-XX-PFCG-PTW-APP-XXXXXXXXXX)
-      // are fully retained to authenticate user login and launchpad access.
-      const rawRolesList: string[] = [];
-      for (const rec of records) {
-        if (rec.Role) {
-          rawRolesList.push(rec.Role.trim().toUpperCase());
-        }
+      // Localhost development can authenticate through the SAP proxy with real credentials.
+      // Production BSP relies only on the existing SAP/Fiori session.
+      if (credentials.password) {
+        if (!import.meta.env.DEV) throw new Error('Sign in through SAP Fiori to access PTW.');
+        if (!targetId) throw new Error('Enter your SAP user ID.');
+        odataClient.setCredentials(targetId, credentials.password);
       }
-      for (const pRec of pfcgRecords) {
-        if (pRec.PFCGRole) {
-          rawRolesList.push(pRec.PFCGRole.trim().toUpperCase());
-        }
-      }
-      for (const rRec of roleEntries) {
-        const isActive =
-          rRec.ACTIVE === true ||
-          (typeof rRec.ACTIVE === 'string' &&
-            ((rRec.ACTIVE as string).toUpperCase() === 'TRUE' || (rRec.ACTIVE as string).toUpperCase() === 'X')) ||
-          (rRec.ACTIVE as any) === 1;
-        if (isActive && rRec.PTW_ROLE) {
-          rawRolesList.push(rRec.PTW_ROLE.trim().toUpperCase());
-        }
-      }
-
-      // Built-in fallback for authorized administrator VERTIF-V
-      if (rawRolesList.length === 0 && targetId === 'VERTIF-V') {
-        rawRolesList.push('PTW_ADMIN');
-      }
-
-      if (!rawRolesList.length) throw new Error('SAP returned no PTW profile for this user.');
-
-      // Extract unique roles and normalize: if PTW_ADMIN, also include ZPTW_ADMIN and vice-versa
-      const rawRoles = Array.from(new Set(rawRolesList.filter(Boolean)));
-      const normalizedRolesSet = new Set<string>();
-      for (const r of rawRoles) {
-        normalizedRolesSet.add(r);
-        const bareRole = r.startsWith('Z') ? r.substring(1) : r;
-        normalizedRolesSet.add(bareRole);
-        normalizedRolesSet.add(`Z${bareRole}`);
-
-        // Expand SAP Config role codes to functional module aliases
-        if (['PTW_APPR1', 'PTW_APPR2', 'PTW_APPR3'].includes(bareRole)) {
-          normalizedRolesSet.add('PTW_APPROVER');
-          normalizedRolesSet.add('ZPTW_APPROVER');
-        } else if (bareRole === 'PTW_APPROVER') {
-          normalizedRolesSet.add('PTW_APPR1');
-          normalizedRolesSet.add('PTW_APPR2');
-          normalizedRolesSet.add('PTW_APPR3');
-        }
-
-        if (['PTW_ACCP', 'PTW_ACCEPTOR'].includes(bareRole)) {
-          normalizedRolesSet.add('PTW_ACCP');
-          normalizedRolesSet.add('PTW_ACCEPTOR');
-          normalizedRolesSet.add('ZPTW_ACCP');
-          normalizedRolesSet.add('ZPTW_ACCEPTOR');
-        }
-
-        if (['PTW_AREA_OPP', 'PTW_AOPR', 'PTW_AREA_OWNER'].includes(bareRole)) {
-          normalizedRolesSet.add('PTW_AREA_OPP');
-          normalizedRolesSet.add('PTW_AOPR');
-          normalizedRolesSet.add('PTW_AREA_OWNER');
-          normalizedRolesSet.add('ZPTW_AREA_OPP');
-          normalizedRolesSet.add('ZPTW_AOPR');
-          normalizedRolesSet.add('ZPTW_AREA_OWNER');
-        }
-
-        if (['PTW_ISO_REQ', 'PTW_ISOLATOR', 'PTW_ISOLATION_REQUESTOR'].includes(bareRole)) {
-          normalizedRolesSet.add('PTW_ISO_REQ');
-          normalizedRolesSet.add('PTW_ISOLATOR');
-          normalizedRolesSet.add('PTW_ISOLATION_REQUESTOR');
-          normalizedRolesSet.add('ZPTW_ISO_REQ');
-          normalizedRolesSet.add('ZPTW_ISOLATOR');
-        }
-
-        if (bareRole === 'PTW_GAS') {
-          normalizedRolesSet.add('PTW_GAS_TESTER');
-          normalizedRolesSet.add('ZPTW_GAS_TESTER');
-        } else if (bareRole === 'PTW_GAS_TESTER') {
-          normalizedRolesSet.add('PTW_GAS');
-        }
-
-        if (bareRole === 'PTW_HOLD') {
-          normalizedRolesSet.add('PTW_HOLDER');
-          normalizedRolesSet.add('ZPTW_HOLDER');
-        } else if (bareRole === 'PTW_HOLDER') {
-          normalizedRolesSet.add('PTW_HOLD');
-        }
-
-        if (bareRole === 'PTW_ISSU') {
-          normalizedRolesSet.add('PTW_ISSUER');
-          normalizedRolesSet.add('ZPTW_ISSUER');
-        } else if (bareRole === 'PTW_ISSUER') {
-          normalizedRolesSet.add('PTW_ISSU');
-        }
-
-        if (bareRole === 'PTW_SAFE') {
-          normalizedRolesSet.add('PTW_SAFETY_OFFICER');
-          normalizedRolesSet.add('ZPTW_SAFETY_OFFICER');
-        } else if (bareRole === 'PTW_SAFETY_OFFICER') {
-          normalizedRolesSet.add('PTW_SAFE');
-        }
-      }
-      const roles = Array.from(normalizedRolesSet);
+      const identity = await authApi.fetchStartupUser(client, options?.signal);
+      if (cancelled()) return false;
+      if (!identity) throw new Error('SAP session could not be verified. Sign in through SAP Fiori, then retry.');
+      if (targetId && targetId !== identity.id) throw new Error('The supplied user does not match the authenticated SAP session.');
+      targetId = identity.id;
+      const records = await authApi.fetchUserInfo(targetId, client, options?.signal);
+      if (cancelled()) return false;
+      const profile = records.find(r => r.UserId?.trim().toUpperCase() === targetId);
+      if (!profile) throw new Error('You do not have PTW application access. Contact your administrator.');
+      const roleEntries = await authApi.fetchUserRoles(targetId, client, options?.signal);
+      if (cancelled()) return false;
+      const roles = normalizePtwRoles(activePtwRoles(roleEntries, targetId));
       const unlocked = computeUnlockedModules(roles);
-      if (!unlocked.length) throw new Error('This SAP user has no assigned PTW authorization.');
-      const profile = records[0] || (pfcgRecords[0] ? {
-        UserId: pfcgRecords[0].SAPUser,
-        FirstName: pfcgRecords[0].FirstName || '',
-        LastName: pfcgRecords[0].LastName || '',
-        Email: pfcgRecords[0].EmailAddress || '',
-        Role: roles[0]
-      } : {
-        UserId: targetId,
-        FirstName: targetId === 'VERTIF-V' ? 'Vertif' : '',
-        LastName: targetId === 'VERTIF-V' ? 'Admin' : '',
-        Email: '',
-        Role: roles[0]
-      });
       const loggedInUser: SapUser = {
-        id: profile.UserId,
+        id: targetId,
         firstName: profile.FirstName || '',
         lastName: profile.LastName || '',
         fullName: [profile.FirstName, profile.LastName].filter(Boolean).join(' ') || profile.UserId,
@@ -685,24 +450,23 @@ export const SapAuthProvider: React.FC<{ children: React.ReactNode }> = ({ child
       };
       setUser(loggedInUser);
       setIsAuthenticated(true);
-      setActiveModule(unlocked[0]);
+      setActiveModule(unlocked[0] || 'permit-details');
+      setIsReauthRequired(false);
       if (!options?.silent) {
         setError(null);
       }
       persistSession(loggedInUser, client, lang, credentials);
       return true;
     } catch (err) {
-      if (options?.signal?.aborted) return false;
+      if (cancelled()) return false;
       authApi.clearSession();
       sessionStorage.removeItem(SESSION_STORAGE_KEY);
       setUser(null);
       setIsAuthenticated(false);
-      if (!options?.silent) {
-        setError(err instanceof Error ? err.message : 'SAP sign-in failed.');
-      }
+      setError(err instanceof Error ? err.message : 'SAP sign-in failed.');
       return false;
     } finally {
-      if (!options?.silent) {
+      if (!options?.silent && attempt === loginAttemptRef.current) {
         setLoading(false);
       }
     }
@@ -713,6 +477,11 @@ export const SapAuthProvider: React.FC<{ children: React.ReactNode }> = ({ child
    * invokes SAP ICF logoff endpoint, and resets state.
    */
   const logout = () => {
+    ++loginAttemptRef.current;
+    restoreControllerRef.current?.abort();
+    clearProtectedStorage();
+    configApi.clearCache();
+    checklistApi.clearCache();
     try {
       sessionStorage.removeItem(SESSION_STORAGE_KEY);
       authApi.clearSession();
@@ -722,6 +491,8 @@ export const SapAuthProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
     setUser(null);
     setIsAuthenticated(false);
+    setIsReauthRequired(false);
+    setLoading(false);
   };
 
   const switchUser = async (targetUserId: string) => {
@@ -736,9 +507,7 @@ export const SapAuthProvider: React.FC<{ children: React.ReactNode }> = ({ child
       user.roles.includes(clean) ||
       user.roles.includes(altClean) ||
       user.roles.includes('ZPTW_ADMIN') ||
-      user.roles.includes('PTW_ADMIN') ||
-      user.roles.includes('Z_MOBILE_PI_SHEET') ||
-      user.roles.includes('YSM-XX-PFCG-PTW-APP-XXXXXXXXXX')
+      user.roles.includes('PTW_ADMIN')
     );
   };
 

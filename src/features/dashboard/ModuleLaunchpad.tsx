@@ -283,11 +283,11 @@ export const ModuleLaunchpad: React.FC<ModuleLaunchpadProps> = ({ user, onSelect
         <div className="flex items-center gap-3.5 relative z-10">
           <div className="w-12 h-12 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex items-center justify-center p-1.5 shrink-0">
             <img
-              src="https://gfl.co.in/assets/images/New_GFL-Logo29.webp"
+              src="./GFL-Logo.webp"
               alt="GFL"
               className="w-full h-full object-contain"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = './assets/GFL-Logo.webp';
+                (e.target as HTMLImageElement).style.visibility = 'hidden';
               }}
             />
           </div>

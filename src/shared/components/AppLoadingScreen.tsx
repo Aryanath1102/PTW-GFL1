@@ -162,7 +162,7 @@ export const AppLoadingScreen: React.FC<AppLoadingScreenProps> = ({
                 alt="GFL Logo"
                 className="w-full h-full object-contain"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://gfl.co.in/assets/images/New_GFL-Logo29.webp';
+                  (e.target as HTMLImageElement).style.visibility = 'hidden';
                 }}
               />
             </div>

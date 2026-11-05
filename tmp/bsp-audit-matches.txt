@@ -1,0 +1,176 @@
+src/shared\hooks\useUserPtwRoles.ts:44:    } catch {
+src/features\admin\AdminWorkspace.tsx:101:    } catch {
+src/features\admin\AdminWorkspace.tsx:123:  // Load enterprise users from live SAP /PFCGUsers (No offline fallback)
+src/features\admin\AdminWorkspace.tsx:398:      toast.warning('Enter an SAP User ID or personnel number (e.g. VERTIF-V or 10045)', {
+src/features\admin\AdminWorkspace.tsx:587:    } catch {
+src/features\admin\AdminWorkspace.tsx:608:    } catch {
+src/features\admin\AdminWorkspace.tsx:630:    } catch {
+src/features\admin\AdminWorkspace.tsx:656:  // Master enterprise user list aggregated from live /PFCGUsers (No offline fallback)
+src/features\admin\AdminWorkspace.tsx:753:                Admin: <strong className="text-slate-900 font-mono">{user?.id || 'VERTIF-V'}</strong>
+src/features\admin\AdminWorkspace.tsx:1454:                    placeholder="e.g. VERTIF-V, 10001 (or comma-separated for batch)"
+src/features\admin\AdminWorkspace.tsx:1674:                      // Endpoint: https://vhgfldevci.sap.gfl.co.in:44300/.../UserRole
+src/features\admin\AdminWorkspace.tsx:1685:                              SAP_USER: parsedInputUsers[0] || 'VERTIF-V',
+src/features\admin\AdminWorkspace.tsx:1805:                      placeholder="e.g. VERTIF-V or 1000045"
+src/features\admin\AdminWorkspace.tsx:2450:                Target URL: <code className="text-slate-900 bg-slate-100 px-1 py-0.5 rounded">https://vhgfldevci.sap.gfl.co.in:44300/.../UserRole</code>
+src/shared\hooks\useNetworkStatus.ts:32:      // In local dev/mock or offline proxy, status 200-404 implies network interface is alive
+src/shared\hooks\useNetworkStatus.ts:36:    } catch {
+src/shared\hooks\useFormDraft.ts:27: * Reusable hook to auto-persist in-progress form drafts to localStorage,
+src/shared\hooks\useFormDraft.ts:46:      const raw = localStorage.getItem(scopedKey);
+src/shared\hooks\useFormDraft.ts:81:          localStorage.setItem(scopedKey, JSON.stringify(draftRecord));
+src/shared\hooks\useFormDraft.ts:95:      const raw = localStorage.getItem(scopedKey);
+src/shared\hooks\useFormDraft.ts:113:      localStorage.removeItem(scopedKey);
+src/core\types\ptw.types.ts:331:  SignedBy: string; // SAP User Name (e.g. "VERTIF-V"), MaxLength 12
+src/features\permits\PermitDisplayWorkspace.tsx:264:      } catch {
+src/features\permits\PermitDisplayWorkspace.tsx:308:      const signedBy = (customSignedBy || user?.id || user?.fullName || 'VERTIF-V').trim();
+src/features\permits\PermitDisplayWorkspace.tsx:724:  // KPI Calculations based on true plant-wide baseline with fallback
+src/features\permits\PermitDisplayWorkspace.tsx:4225:                          defaultValue={user?.id || user?.fullName || 'VERTIF-V'}
+src/features\permits\PermitDisplayWorkspace.tsx:4775:                                } catch {
+src/features\permits\PermitCreateModule.tsx:579:  // Default fallback
+src/features\permits\PermitCreateModule.tsx:957:  // Auto-save form draft to localStorage whenever fields change
+src/features\permits\PermitCreateModule.tsx:2549:        if (typeof window !== 'undefined' && window.localStorage) {
+src/features\permits\PermitCreateModule.tsx:2550:          const stored = JSON.parse(window.localStorage.getItem('ptw_recent_created_permits') || '[]');
+src/features\permits\PermitCreateModule.tsx:2572:          window.localStorage.setItem('ptw_recent_created_permits', JSON.stringify(updated));
+src/features\permits\PermitCreateModule.tsx:2712:      {/* Dedicated Print Document Render (fallback when modal is closed) */}
+src/core\ptw\siteProcedure.ts:255:  // Validate required plan fields with fallbacks
+src/shared\components\StitchHeader.tsx:42:              src="https://gfl.co.in/assets/images/New_GFL-Logo29.webp"
+src/features\isolation\IsolationWorkspace.tsx:218:        if (typeof window !== 'undefined' && window.localStorage) {
+src/features\isolation\IsolationWorkspace.tsx:219:          const stored = JSON.parse(window.localStorage.getItem('ptw_recent_created_permits') || '[]');
+src/features\isolation\IsolationWorkspace.tsx:222:      } catch {}
+src/features\isolation\IsolationWorkspace.tsx:1463:                  value={user?.id || 'VERTIF-V'}
+src/shared\components\ComingSoonModule.tsx:152:            src="https://gfl.co.in/assets/images/New_GFL-Logo29.webp"
+src/shared\components\AppLoadingScreen.tsx:35:  // Progressive simulation of initialization stages
+src/shared\components\AppLoadingScreen.tsx:165:                  (e.target as HTMLImageElement).src = 'https://gfl.co.in/assets/images/New_GFL-Logo29.webp';
+src/shared\components\SapLoginPage.tsx:104:            src="https://gfl.co.in/assets/images/New_GFL-Logo29.webp"
+src/shared\components\SapLoginPage.tsx:150:                src="https://gfl.co.in/assets/images/New_GFL-Logo29.webp"
+src/core\ptw\jhaTemplates.ts:1079:  // 10. Default fallback based on permit type or cold maintenance
+src/features\gastest\GasTesterWorkspace.tsx:106:  const parseGasNum = (val: string, fallback = 0): number => {
+src/features\gastest\GasTesterWorkspace.tsx:107:    if (!val || typeof val !== 'string') return fallback;
+src/features\gastest\GasTesterWorkspace.tsx:109:    if (!cleaned) return fallback;
+src/features\gastest\GasTesterWorkspace.tsx:111:    return isNaN(parsed) ? fallback : parsed;
+src/features\gastest\GasTesterWorkspace.tsx:638:        TestedBy: user?.id || 'VERTIF-V',
+src/features\approvals\PermitAreaOperatorWorkspace.tsx:193:      // Cache to localStorage for offline resilience
+src/features\approvals\PermitAreaOperatorWorkspace.tsx:195:        if (typeof window !== 'undefined' && window.localStorage) {
+src/features\approvals\PermitAreaOperatorWorkspace.tsx:196:          window.localStorage.setItem(`ptw_area_operator_cache_${plant}`, JSON.stringify(data));
+src/features\approvals\PermitAreaOperatorWorkspace.tsx:198:      } catch {
+src/features\approvals\PermitAreaOperatorWorkspace.tsx:215:          if (typeof window !== 'undefined' && window.localStorage) {
+src/features\approvals\PermitAreaOperatorWorkspace.tsx:216:            const cached = window.localStorage.getItem(`ptw_area_operator_cache_${plant}`);
+src/features\approvals\PermitAreaOperatorWorkspace.tsx:234:        } catch {
+src/features\approvals\PermitAreaOperatorWorkspace.tsx:271:      } catch {
+src/features\approvals\PermitAreaOperatorWorkspace.tsx:446:  // Counts for KPI Strip (Plant-wide summary from SAP with fallback)
+src/core\auth\sapAuthContext.tsx:287:   * Helper to persist active session to sessionStorage (Fiori reload persistence)
+src/core\auth\sapAuthContext.tsx:302:      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
+src/core\auth\sapAuthContext.tsx:305:        localStorage.setItem(REMEMBERED_USER_KEY, loggedInUser.id);
+src/core\auth\sapAuthContext.tsx:307:        localStorage.removeItem(REMEMBERED_USER_KEY);
+src/core\auth\sapAuthContext.tsx:310:      console.warn('[SapAuth] Could not persist session to sessionStorage:', e);
+src/core\auth\sapAuthContext.tsx:329:        sessionStorage.removeItem('gfl_ptw_user_session_v1');
+src/core\auth\sapAuthContext.tsx:334:        try { sessionStorage.removeItem(SESSION_STORAGE_KEY); } catch { /* Storage may be blocked. */ }
+src/core\auth\sapAuthContext.tsx:361:          const raw = sessionStorage.getItem(SESSION_STORAGE_KEY);
+src/core\auth\sapAuthContext.tsx:365:            sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(parsed));
+src/core\auth\sapAuthContext.tsx:367:        } catch {
+src/core\auth\sapAuthContext.tsx:381:        const raw = sessionStorage.getItem(SESSION_STORAGE_KEY);
+src/core\auth\sapAuthContext.tsx:389:      } catch {
+src/core\auth\sapAuthContext.tsx:411:          sessionStorage.removeItem(SESSION_STORAGE_KEY);
+src/core\auth\sapAuthContext.tsx:412:        } catch {
+src/core\auth\sapAuthContext.tsx:424:   * Retrieve remembered SAP User ID from localStorage
+src/core\auth\sapAuthContext.tsx:428:      return localStorage.getItem(REMEMBERED_USER_KEY) || '';
+src/core\auth\sapAuthContext.tsx:429:    } catch {
+src/core\auth\sapAuthContext.tsx:499:      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+src/core\auth\sapAuthContext.tsx:519:      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+src/features\approvals\PermitAcceptorWorkspace.tsx:193:      // Cache to localStorage for offline resilience
+src/features\approvals\PermitAcceptorWorkspace.tsx:195:        if (typeof window !== 'undefined' && window.localStorage) {
+src/features\approvals\PermitAcceptorWorkspace.tsx:196:          window.localStorage.setItem(`ptw_acceptor_cache_${plant}`, JSON.stringify(data));
+src/features\approvals\PermitAcceptorWorkspace.tsx:198:      } catch {
+src/features\approvals\PermitAcceptorWorkspace.tsx:215:          if (typeof window !== 'undefined' && window.localStorage) {
+src/features\approvals\PermitAcceptorWorkspace.tsx:216:            const cached = window.localStorage.getItem(`ptw_acceptor_cache_${plant}`);
+src/features\approvals\PermitAcceptorWorkspace.tsx:234:        } catch {
+src/features\approvals\PermitAcceptorWorkspace.tsx:271:      } catch {
+src/features\approvals\PermitAcceptorWorkspace.tsx:425:  // Counts for KPI Strip (Plant-wide summary from SAP with fallback)
+src/features\approvals\PermitApproverWorkspace.tsx:141:  // Unified list of active work types for the selected permit (combining primary PermitType, child _WorkType, and _Safety fallbacks)
+src/features\approvals\PermitApproverWorkspace.tsx:614:      const signedBy = (user?.id || user?.fullName || 'VERTIF-V').trim();
+src/features\approvals\PermitApproverWorkspace.tsx:692:  // Counts for KPI Strip (Plant-wide summary from SAP with fallback)
+src/features\approvals\PermitApproverWorkspace.tsx:2220:                          value={user?.id || user?.fullName || 'VERTIF-V'}
+src/features\dashboard\reports\PermitTypeDailyAnalytics.tsx:33:  } catch {
+src/features\dashboard\reports\PermitTypeDailyAnalytics.tsx:44:  } catch {
+src/features\dashboard\ReportModule.tsx:143:        if (typeof window !== 'undefined' && window.localStorage) {
+src/features\dashboard\ReportModule.tsx:144:          const localPermits: any[] = JSON.parse(window.localStorage.getItem('ptw_recent_created_permits') || '[]');
+src/core\api\odataClient.ts:5:// Read configuration from environment or fallback
+src/core\api\odataClient.ts:78:    } catch {
+src/core\api\odataClient.ts:174:        } catch {
+src/core\api\odataClient.ts:179:      // 2. Try HEAD on service root as fallback
+src/core\api\odataClient.ts:191:      } catch {
+src/features\dashboard\ModuleLaunchpad.tsx:286:              src="https://gfl.co.in/assets/images/New_GFL-Logo29.webp"
+src/features\dashboard\reports\reportConstants.ts:520:  } catch {
+src/core\api\modules\auditLog.api.ts:12: * Does NOT use fabricated or mock fallback data.
+src/core\api\modules\auditLog.api.ts:69:      } catch {
+src/core\api\modules\auditLog.api.ts:78:        } catch {
+src/core\api\modules\auditLog.api.ts:84:    // No fallback / mock data: strictly live SAP audit logs
+src/core\api\modules\admin.api.ts:46:  SAP_USER: 'VERTIF-V',
+src/core\api\modules\admin.api.ts:66:   * No offline mock fallback is maintained as per live SAP requirement.
+src/core\api\modules\admin.api.ts:133:      // Sync to local fallback memory cache with strict boolean normalization
+src/core\api\modules\admin.api.ts:150:    // Filter local store if offline / fallback
+src/core\api\modules\admin.api.ts:179:      CREATED_BY: 'VERTIF-V',
+src/core\api\modules\admin.api.ts:202:      console.warn('[adminApi] Live POST /UserRole failed, updating local fallback cache:', e);
+src/core\api\modules\admin.api.ts:232:        CHANGED_BY: 'VERTIF-V',
+src/core\api\modules\admin.api.ts:239:          ? { ...r, ACTIVE: isActiveBool, CHANGED_BY: 'VERTIF-V', CHANGED_ON: new Date().toISOString().slice(0, 10) }
+src/core\api\modules\admin.api.ts:247:          ? { ...r, ACTIVE: isActiveBool, CHANGED_BY: 'VERTIF-V', CHANGED_ON: new Date().toISOString().slice(0, 10) }
+src/core\api\modules\admin.api.ts:388:    } catch {
+src/core\api\modules\admin.api.ts:482:    } catch {
+src/features\dashboard\reports\ReportAnalytics.tsx:279:          } catch {
+src/features\dashboard\reports\ReportAnalytics.tsx:288:          } catch {
+src/core\api\modules\auth.api.ts:79:      } catch {
+src/core\api\modules\config.api.ts:262:      // If SAP returned empty array, use local fallback
+src/core\api\modules\config.api.ts:263:      const fallback = FALLBACK_CONFIG_DATA[type] || [];
+src/core\api\modules\config.api.ts:264:      this.cache.set(type, fallback);
+src/core\api\modules\config.api.ts:265:      return fallback;
+src/core\api\modules\config.api.ts:267:      console.warn(`[ConfigApi] Live fetch for Config_Type='${type}' failed, using fallback data. Reason:`, error);
+src/core\api\modules\config.api.ts:268:      const fallback = FALLBACK_CONFIG_DATA[type] || [];
+src/core\api\modules\config.api.ts:269:      this.cache.set(type, fallback);
+src/core\api\modules\config.api.ts:270:      return fallback;
+src/core\api\modules\config.api.ts:345:    } catch {
+src/core\api\modules\config.api.ts:346:      // fallback to multi-type fetch
+src/core\api\modules\config.api.ts:359:    } catch {
+src/core\api\modules\config.api.ts:360:      // fallback to local data
+src/core\api\modules\config.api.ts:364:    const fallbackCombined = roleTypes.flatMap(t => FALLBACK_CONFIG_DATA[t] || []);
+src/core\api\modules\config.api.ts:365:    this.cache.set(cacheKey, fallbackCombined);
+src/core\api\modules\config.api.ts:366:    return fallbackCombined;
+src/core\api\modules\checklist.api.ts:14: * Production verified fallback / offline questionnaire seed data
+src/core\api\modules\checklist.api.ts:413:      // If SAP returned empty array, check fallback seed
+src/core\api\modules\checklist.api.ts:415:        const fallback = FALLBACK_CHECKLISTS[sapCode];
+src/core\api\modules\checklist.api.ts:416:        this.cache.set(sapCode, { timestamp: now, data: fallback });
+src/core\api\modules\checklist.api.ts:417:        return fallback;
+src/core\api\modules\checklist.api.ts:422:      // In offline / dev / unauthenticated proxy environments, use fallback if available
+src/core\api\modules\checklist.api.ts:424:        const fallback = FALLBACK_CHECKLISTS[sapCode];
+src/core\api\modules\checklist.api.ts:425:        this.cache.set(sapCode, { timestamp: now, data: fallback });
+src/core\api\modules\checklist.api.ts:426:        return fallback;
+src/core\api\modules\gasTester.api.ts:389:      console.warn('[GasTesterApi] Read failed, finding in fallback:', e);
+src/core\api\modules\gasTester.api.ts:426:      TestedBy: (record.TestedBy || 'VERTIF-V').trim(),
+src/core\api\modules\gasTester.api.ts:515:    } catch {
+src/core\api\modules\gasTester.api.ts:560:    // 2. Merge recent permits cached in localStorage (e.g. newly created during active session)
+src/core\api\modules\gasTester.api.ts:561:    if (typeof window !== 'undefined' && window.localStorage) {
+src/core\api\modules\gasTester.api.ts:563:        const cached = JSON.parse(window.localStorage.getItem('ptw_recent_created_permits') || '[]');
+src/core\api\modules\gasTester.api.ts:574:      } catch {
+src/core\api\modules\gasTester.api.ts:579:    // No fallback mock permits: strictly live SAP INTD permits only
+src/core\api\modules\isolation.api.ts:10:    if (typeof window !== 'undefined' && window.localStorage) {
+src/core\api\modules\isolation.api.ts:11:      return JSON.parse(window.localStorage.getItem('ptw_isolation_permit_links') || '{}');
+src/core\api\modules\isolation.api.ts:13:  } catch {}
+src/core\api\modules\isolation.api.ts:19:    if (typeof window !== 'undefined' && window.localStorage) {
+src/core\api\modules\isolation.api.ts:20:      const map = JSON.parse(window.localStorage.getItem('ptw_isolation_permit_links') || '{}');
+src/core\api\modules\isolation.api.ts:26:      window.localStorage.setItem('ptw_isolation_permit_links', JSON.stringify(map));
+src/core\api\modules\isolation.api.ts:28:  } catch {}
+src/core\api\modules\permitApprover.api.ts:355:    } catch {
+src/core\api\modules\permitApprover.api.ts:356:      // Gateway fallback if complex OR filter is rejected by ABAP service
+src/core\api\modules\permitApprover.api.ts:362:        } catch {
+src/core\api\modules\permitApprover.api.ts:560:    } catch {
+src/core\api\modules\permitWorkLookup.api.ts:182:      // "Breakdown/Corrective" instead of "CORRECTIVE", or dates differ), fallback to live SAP filter:
+src/core\api\modules\permitWorkLookup.api.ts:188:          const fallbackResults = await fetchRows(liveFilter);
+src/core\api\modules\permitWorkLookup.api.ts:189:          if (fallbackResults.length > 0) return fallbackResults;
+src/core\api\modules\permitWorkLookup.api.ts:195:        } catch {
+src/core\api\modules\permitWorkLookup.api.ts:196:          // If fallback fails, return initial empty results
+src/core\api\modules\permitWorkLookup.api.ts:204:        } catch {
+src/core\api\modules\sitePermit.api.ts:103:        const fallbackQuery = buildODataQuery({
+src/core\api\modules\sitePermit.api.ts:110:        const fallbackResp = await odataClient.get<{ value: PermitInfoRecord[]; '@odata.count'?: number }>(
+src/core\api\modules\sitePermit.api.ts:111:          `${ODATA_ENTITIES.PERMIT_INFO}${fallbackQuery}`,
+src/core\api\modules\sitePermit.api.ts:114:        if (Array.isArray(fallbackResp.data?.value)) {
+src/core\api\modules\sitePermit.api.ts:115:          const list = fallbackResp.data.value as PermitListResult;
+src/core\api\modules\sitePermit.api.ts:116:          list.totalCount = typeof fallbackResp.data['@odata.count'] === 'number'
+src/core\api\modules\sitePermit.api.ts:117:            ? fallbackResp.data['@odata.count']

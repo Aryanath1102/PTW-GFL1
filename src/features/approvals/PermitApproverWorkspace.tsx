@@ -611,7 +611,8 @@ export const PermitApproverWorkspace: React.FC<PermitApproverWorkspaceProps> = (
         governingType,
         permitTimeBand.id
       );
-      const signedBy = (user?.id || user?.fullName || 'VERTIF-V').trim();
+      const signedBy = (user?.id || '').trim();
+      if (!signedBy) throw new Error('Your SAP session must be verified before signing.');
 
       if (actionToSubmit === 'AP') {
         // Dedicated SAP RAP Bound Action:
@@ -2217,7 +2218,7 @@ export const PermitApproverWorkspace: React.FC<PermitApproverWorkspaceProps> = (
                         <input
                           type="text"
                           readOnly
-                          value={user?.id || user?.fullName || 'VERTIF-V'}
+                          value={user?.id || ''}
                           className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 font-mono font-bold text-slate-800"
                         />
                       </div>

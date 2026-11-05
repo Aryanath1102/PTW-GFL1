@@ -2,8 +2,8 @@ import type { PermitInfoRecord, PermitDeepInsertResponse } from '../types/ptw.ty
 
 export type GasLevelStatus = 'DONE' | 'REQUIRED_PENDING' | 'NOT_REQUIRED';
 export type ApproverLevelStatus = 'APPROVED' | 'IN_PROGRESS' | 'REJECTED' | 'NOT_STARTED';
-export type AccepterLevelStatus = 'ACCEPTED' | 'PENDING' | 'AWAITING_APPROVER' | 'BLOCKED';
-export type AreaOperatorLevelStatus = 'CLEARED' | 'PENDING' | 'AWAITING_ACCEPTANCE' | 'BLOCKED';
+export type AccepterLevelStatus = 'ACCEPTED' | 'PENDING' | 'AWAITING_APPROVER' | 'BLOCKED' | 'REJECTED';
+export type AreaOperatorLevelStatus = 'CLEARED' | 'PENDING' | 'AWAITING_ACCEPTANCE' | 'BLOCKED' | 'REJECTED';
 
 export type OverallWorkflowStage =
   | 'GAS_TEST'
@@ -98,6 +98,20 @@ export function getPermitClearanceLevels(
   const status = (permit.Status || '').trim().toUpperCase();
   const permitType = (permit.PermitType || '').trim().toUpperCase();
   const isRejected = status === 'REJT' || status === 'REJC' || status === 'CANC';
+  const approvalHistory = [...((permit as PermitDeepInsertResponse)._Approval || [])].sort((a, b) =>
+    (Number(a.CycleNo || 1) - Number(b.CycleNo || 1)) ||
+    (Number(a.SeqNo || 0) - Number(b.SeqNo || 0))
+  );
+  const rejectionActions = ['RJ', 'REJT', 'REJC', 'REJECTED', 'RJA', 'REJECT_ACCEPTOR', 'RAO', 'REJECT_AREA_OPERATOR'];
+  const rejection = isRejected ? [...approvalHistory].reverse().find(a => rejectionActions.includes((a.Action || '').trim().toUpperCase())) : undefined;
+  const rejectedAction = (rejection?.Action || '').trim().toUpperCase();
+  const rejectedRole = (rejection?.RoleId || '').trim().toUpperCase().replace(/^Z(?=PTW_)/, '');
+  const rejectedStage = (rejection?.Stage || '').trim().toUpperCase();
+  const rejectionLevel = !rejection ? null
+    : ['RAO', 'REJECT_AREA_OPERATOR'].includes(rejectedAction) || ['PTW_AREA_OPP', 'PTW_AOPR', 'PTW_AREA_OWNER'].includes(rejectedRole) || ['AREA', 'AREA_OPP', 'CAO'].includes(rejectedStage) ? 'area_operator'
+    : ['RJA', 'REJECT_ACCEPTOR'].includes(rejectedAction) || ['PTW_ACCP', 'PTW_ACCEPTOR'].includes(rejectedRole) || ['ACCP', 'ACCEPTOR'].includes(rejectedStage) ? 'accepter'
+    : /^PTW_APPR[123]$/.test(rejectedRole) || ['PTW_APPROVER', 'APPR'].includes(rejectedRole) || rejectedStage === 'APPR' ? 'approver' : null;
+  const rejectionRemarks = rejection?.Comments?.trim() || 'No rejection remarks recorded.';
 
   // -------------------------------------------------------------------------
   // 1. Gas Test Level Evaluation
@@ -440,6 +454,49 @@ export function getPermitClearanceLevels(
   }
 
   // -------------------------------------------------------------------------
+  // Attribute rejection to its recorded stage, retaining completed upstream stages.
+  // A rejected header alone does not tell us who rejected the permit.
+  if (isRejected) {
+    const blocked = (item: ClearanceLevelItem): ClearanceLevelItem => ({
+      ...item, status: 'BLOCKED', isComplete: false, isRejected: false,
+      isPendingCurrent: false, isAwaitingPrior: true,
+      badgeLabel: `${item.shortLabel}: Blocked`, icon: 'block',
+      badgeClass: 'bg-slate-100 text-slate-500 border-slate-200',
+      detailText: 'Cannot proceed while the permit is rejected.',
+    });
+    approverItem = blocked(approverItem);
+    accepterItem = blocked(accepterItem);
+    areaOperatorItem = blocked(areaOperatorItem);
+    if (rejectionLevel === 'accepter' || rejectionLevel === 'area_operator') {
+      const cycle = Number(rejection?.CycleNo || 1);
+      const signedRoles = [...new Set(approvalHistory.filter(a => Number(a.CycleNo || 1) === cycle &&
+        Number(a.SeqNo || 0) < Number(rejection?.SeqNo || 0) &&
+        ['AP', 'APPROVED'].includes((a.Action || '').trim().toUpperCase()) &&
+        /^(Z)?PTW_APPR[123]$/.test(a.RoleId || '')
+      ).map(a => `Approver ${a.RoleId.slice(-1)}`))];
+      approverItem = { ...approverItem, status: 'APPROVED', isComplete: true, isAwaitingPrior: false,
+        badgeLabel: 'Appr: Approved', icon: 'verified',
+        badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        detailText: signedRoles.length ? `${signedRoles.join(' and ')} completed approval before this rejection.` : 'Managerial approval completed before the later-stage rejection.',
+      };
+    }
+    if (rejectionLevel === 'area_operator') {
+      accepterItem = { ...accepterItem, status: 'ACCEPTED', isComplete: true, isAwaitingPrior: false,
+        badgeLabel: 'Accp: Accepted', icon: 'task_alt',
+        badgeClass: 'bg-teal-50 text-teal-800 border-teal-200', detailText: 'Field acceptance completed before area clearance was rejected.',
+      };
+    }
+    const rejected = (item: ClearanceLevelItem): ClearanceLevelItem => ({
+      ...item, status: 'REJECTED', isComplete: false, isRejected: true, isAwaitingPrior: false,
+      badgeLabel: `${item.shortLabel}: Rejected`, icon: 'cancel',
+      badgeClass: 'bg-rose-50 text-rose-700 border-rose-200',
+      detailText: `Rejected${rejection?.SignedBy ? ` by ${rejection.SignedBy}` : ''}. Remarks: ${rejectionRemarks}`,
+    });
+    if (rejectionLevel === 'approver') approverItem = rejected(approverItem);
+    if (rejectionLevel === 'accepter') accepterItem = rejected(accepterItem);
+    if (rejectionLevel === 'area_operator') areaOperatorItem = rejected(areaOperatorItem);
+  }
+
   // Overall Workflow Level & Next Action
   // -------------------------------------------------------------------------
   let overallCurrentLevel: OverallWorkflowStage;
@@ -451,7 +508,8 @@ export function getPermitClearanceLevels(
     overallCurrentLevel = 'REJECTED';
     overallLevelLabel = 'Rejected';
     overallLevelBadgeClass = 'bg-rose-100 text-rose-800 border-rose-300';
-    nextActionText = 'Revise permit scope or resubmit for authorization';
+    const stageName = rejectionLevel === 'accepter' ? 'Acceptor' : rejectionLevel === 'area_operator' ? 'Area Operator' : rejectionLevel === 'approver' ? 'Approver' : 'Permit';
+    nextActionText = `${stageName} rejected. Remarks: ${rejectionRemarks} Review and revise before resubmitting.`;
   } else if (status === 'CLSD') {
     overallCurrentLevel = 'CLOSED';
     overallLevelLabel = 'Work Completed';
@@ -488,7 +546,7 @@ export function getPermitClearanceLevels(
   }
 
   const levels = [gasItem, approverItem, accepterItem, areaOperatorItem];
-  const completedCount = levels.filter(l => l.isComplete).length;
+  const completedCount = levels.filter(l => l.isComplete && !l.isNotApplicable).length;
   const totalApplicableLevels = levels.filter(l => !l.isNotApplicable).length;
 
   return {

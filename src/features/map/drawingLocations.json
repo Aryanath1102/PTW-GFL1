@@ -1,0 +1,1354 @@
+{
+  "drawing": "GFL-COM-CIVL-LYOD-D1376",
+  "title": "Block diagram of GFL A",
+  "page": 1,
+  "pdfWidth": 1684.0,
+  "pdfHeight": 1191.0,
+  "crop": [
+    90.0,
+    90.0,
+    1220.0,
+    1070.0
+  ],
+  "width": 2000,
+  "height": 1734.5132743362833,
+  "locations": [
+    {
+      "id": "D1376-313",
+      "name": "D-PTFE Plant",
+      "category": "Production",
+      "x": 525.2037,
+      "y": 203.8411,
+      "sourceBlocks": [
+        313,
+        314
+      ],
+      "sourceLabel": "D-PTFE / PLANT",
+      "pdfAnchor": {
+        "x": 386.7400665283203,
+        "y": 205.17020416259766
+      }
+    },
+    {
+      "id": "D1376-263",
+      "name": "A-PTFE",
+      "category": "Production",
+      "x": 419.0867,
+      "y": 223.396,
+      "sourceBlocks": [
+        263
+      ],
+      "sourceLabel": "A-PTFE",
+      "pdfAnchor": {
+        "x": 326.78399658203125,
+        "y": 216.21874237060547
+      }
+    },
+    {
+      "id": "D1376-103",
+      "name": "PTFE Plant",
+      "category": "Production",
+      "x": 366.137,
+      "y": 521.8676,
+      "sourceBlocks": [
+        103
+      ],
+      "sourceLabel": "PTFE PLANT",
+      "pdfAnchor": {
+        "x": 296.86741638183594,
+        "y": 384.85520935058594
+      }
+    },
+    {
+      "id": "D1376-102",
+      "name": "PTPTFE Plant",
+      "category": "Production",
+      "x": 410.8402,
+      "y": 567.9561,
+      "sourceBlocks": [
+        102
+      ],
+      "sourceLabel": "PTPTFE PLANT",
+      "pdfAnchor": {
+        "x": 322.1247253417969,
+        "y": 410.8951873779297
+      }
+    },
+    {
+      "id": "D1376-104",
+      "name": "PTFE Warehouse",
+      "category": "Storage",
+      "x": 451.7178,
+      "y": 723.9978,
+      "sourceBlocks": [
+        104
+      ],
+      "sourceLabel": "PTFE WAREHOUSE",
+      "pdfAnchor": {
+        "x": 345.2205810546875,
+        "y": 499.0587615966797
+      }
+    },
+    {
+      "id": "D1376-97",
+      "name": "TFE Monomer Plant I",
+      "category": "Production",
+      "x": 508.6556,
+      "y": 434.257,
+      "sourceBlocks": [
+        97,
+        98
+      ],
+      "sourceLabel": "TFE MONOMER / PLANT-I",
+      "pdfAnchor": {
+        "x": 377.39044189453125,
+        "y": 335.35520935058594
+      }
+    },
+    {
+      "id": "D1376-105",
+      "name": "TFE Monomer Plant II",
+      "category": "Production",
+      "x": 509.5052,
+      "y": 960.9827,
+      "sourceBlocks": [
+        105,
+        106
+      ],
+      "sourceLabel": "TFE MONOMER / PLANT-II",
+      "pdfAnchor": {
+        "x": 377.8704528808594,
+        "y": 632.9552001953125
+      }
+    },
+    {
+      "id": "D1376-282",
+      "name": "TFE-3 Plant",
+      "category": "Production",
+      "x": 1032.4595,
+      "y": 919.0129,
+      "sourceBlocks": [
+        282
+      ],
+      "sourceLabel": "TFE-3 PLANT",
+      "pdfAnchor": {
+        "x": 673.3396301269531,
+        "y": 609.2423095703125
+      }
+    },
+    {
+      "id": "D1376-235",
+      "name": "TFE Vent Recovery",
+      "category": "Production",
+      "x": 495.7339,
+      "y": 330.6943,
+      "sourceBlocks": [
+        235
+      ],
+      "sourceLabel": "TFE VENT RECOVERY",
+      "pdfAnchor": {
+        "x": 370.0896759033203,
+        "y": 276.84228515625
+      }
+    },
+    {
+      "id": "D1376-323",
+      "name": "R-125 Plant",
+      "category": "Production",
+      "x": 403.8057,
+      "y": 318.0572,
+      "sourceBlocks": [
+        323
+      ],
+      "sourceLabel": "R-125 PLANT",
+      "pdfAnchor": {
+        "x": 318.15020751953125,
+        "y": 269.7023010253906
+      }
+    },
+    {
+      "id": "D1376-324",
+      "name": "R-125 Storage",
+      "category": "Storage",
+      "x": 394.1634,
+      "y": 379.0129,
+      "sourceBlocks": [
+        324
+      ],
+      "sourceLabel": "R-125 STORAGE",
+      "pdfAnchor": {
+        "x": 312.70233154296875,
+        "y": 304.1423034667969
+      }
+    },
+    {
+      "id": "D1376-236",
+      "name": "FKM",
+      "category": "Production",
+      "x": 660.8645,
+      "y": 667.5022,
+      "sourceBlocks": [
+        236
+      ],
+      "sourceLabel": "FKM",
+      "pdfAnchor": {
+        "x": 463.388427734375,
+        "y": 467.1387176513672
+      }
+    },
+    {
+      "id": "D1376-354",
+      "name": "PVDF Plant",
+      "category": "Production",
+      "x": 685.6756,
+      "y": 637.9652,
+      "sourceBlocks": [
+        354
+      ],
+      "sourceLabel": "PVDF PLANT",
+      "pdfAnchor": {
+        "x": 477.40673828125,
+        "y": 450.4503631591797
+      }
+    },
+    {
+      "id": "D1376-237",
+      "name": "S & A",
+      "category": "Production",
+      "x": 629.716,
+      "y": 738.0155,
+      "sourceBlocks": [
+        237
+      ],
+      "sourceLabel": "S & A",
+      "pdfAnchor": {
+        "x": 445.78953552246094,
+        "y": 506.97874450683594
+      }
+    },
+    {
+      "id": "D1376-277",
+      "name": "VDF Plant",
+      "category": "Production",
+      "x": 763.996,
+      "y": 914.6589,
+      "sourceBlocks": [
+        277
+      ],
+      "sourceLabel": "VDF PLANT",
+      "pdfAnchor": {
+        "x": 521.6577606201172,
+        "y": 606.7822875976562
+      }
+    },
+    {
+      "id": "D1376-275",
+      "name": "VDF Storage Tank",
+      "category": "Storage",
+      "x": 843.1359,
+      "y": 934.1988,
+      "sourceBlocks": [
+        275
+      ],
+      "sourceLabel": "VDF STORAGE TANK",
+      "pdfAnchor": {
+        "x": 566.3717956542969,
+        "y": 617.8223266601562
+      }
+    },
+    {
+      "id": "D1376-276",
+      "name": "R-142B Storage Tank",
+      "category": "Storage",
+      "x": 903.4545,
+      "y": 934.1988,
+      "sourceBlocks": [
+        276
+      ],
+      "sourceLabel": "R-142B STORAGE TANK",
+      "pdfAnchor": {
+        "x": 600.4518127441406,
+        "y": 617.8223266601562
+      }
+    },
+    {
+      "id": "D1376-289",
+      "name": "R-225 Plant",
+      "category": "Production",
+      "x": 768.903,
+      "y": 886.836,
+      "sourceBlocks": [
+        289
+      ],
+      "sourceLabel": "R-225 PLANT",
+      "pdfAnchor": {
+        "x": 524.43017578125,
+        "y": 591.0623168945312
+      }
+    },
+    {
+      "id": "D1376-290",
+      "name": "R-225 Storage",
+      "category": "Storage",
+      "x": 762.0219,
+      "y": 964.9952,
+      "sourceBlocks": [
+        290
+      ],
+      "sourceLabel": "R-225 STORAGE",
+      "pdfAnchor": {
+        "x": 520.5423583984375,
+        "y": 635.2222900390625
+      }
+    },
+    {
+      "id": "D1376-126",
+      "name": "CA Plant",
+      "category": "Production",
+      "x": 812.1354,
+      "y": 477.6906,
+      "sourceBlocks": [
+        126
+      ],
+      "sourceLabel": "CA PLANT",
+      "pdfAnchor": {
+        "x": 548.8565063476562,
+        "y": 359.8951873779297
+      }
+    },
+    {
+      "id": "D1376-312",
+      "name": "Brine Area",
+      "category": "Production",
+      "x": 822.6459,
+      "y": 654.7589,
+      "sourceBlocks": [
+        312
+      ],
+      "sourceLabel": "BRINE AREA",
+      "pdfAnchor": {
+        "x": 554.7949523925781,
+        "y": 459.9387664794922
+      }
+    },
+    {
+      "id": "D1376-362",
+      "name": "CaCl2-1 Plant",
+      "category": "Production",
+      "x": 1291.372,
+      "y": 144.3157,
+      "sourceBlocks": [
+        362
+      ],
+      "sourceLabel": "CaCl2-1 PLANT",
+      "pdfAnchor": {
+        "x": 819.6251831054688,
+        "y": 171.53839874267578
+      }
+    },
+    {
+      "id": "D1376-239",
+      "name": "CaCl2-2 Plant",
+      "category": "Production",
+      "x": 1588.1938,
+      "y": 558.1217,
+      "sourceBlocks": [
+        239
+      ],
+      "sourceLabel": "CaCl2-2 PLANT",
+      "pdfAnchor": {
+        "x": 987.3294982910156,
+        "y": 405.33876037597656
+      }
+    },
+    {
+      "id": "D1376-358",
+      "name": "CaCl2 Granules",
+      "category": "Production",
+      "x": 279.161,
+      "y": 244.0054,
+      "sourceBlocks": [
+        358
+      ],
+      "sourceLabel": "CACL2 GRANULES",
+      "pdfAnchor": {
+        "x": 247.72596740722656,
+        "y": 227.86302947998047
+      }
+    },
+    {
+      "id": "D1376-166",
+      "name": "AHF Plant",
+      "category": "Production",
+      "x": 1442.174,
+      "y": 500.0528,
+      "sourceBlocks": [
+        166
+      ],
+      "sourceLabel": "AHF PLANT",
+      "pdfAnchor": {
+        "x": 904.8283081054688,
+        "y": 372.5298309326172
+      }
+    },
+    {
+      "id": "D1376-180",
+      "name": "AHF Ref. Plant",
+      "category": "Production",
+      "x": 1453.9516,
+      "y": 433.9014,
+      "sourceBlocks": [
+        180
+      ],
+      "sourceLabel": "AHF REF. PLANT",
+      "pdfAnchor": {
+        "x": 911.482666015625,
+        "y": 335.154296875
+      }
+    },
+    {
+      "id": "D1376-172",
+      "name": "HCFC Plant Reaction Section",
+      "category": "Production",
+      "x": 1259.5192,
+      "y": 499.1419,
+      "sourceBlocks": [
+        172,
+        173,
+        174
+      ],
+      "sourceLabel": "HCFC PLANT / REACTION / SECTION",
+      "pdfAnchor": {
+        "x": 801.6283264160156,
+        "y": 372.0151824951172
+      }
+    },
+    {
+      "id": "D1376-185",
+      "name": "Scrubbing & Drying Section",
+      "category": "Production",
+      "x": 1262.6185,
+      "y": 555.5313,
+      "sourceBlocks": [
+        185
+      ],
+      "sourceLabel": "SCRUBBING & DRYING SECTION",
+      "pdfAnchor": {
+        "x": 803.3794250488281,
+        "y": 403.8751983642578
+      }
+    },
+    {
+      "id": "D1376-349",
+      "name": "Fluoro Intermediate Plant",
+      "category": "Production",
+      "x": 1437.2183,
+      "y": 184.0326,
+      "sourceBlocks": [
+        349,
+        350
+      ],
+      "sourceLabel": "FLUORO INTERMEDIATE / PLANT",
+      "pdfAnchor": {
+        "x": 902.0283508300781,
+        "y": 193.97840118408203
+      }
+    },
+    {
+      "id": "D1376-31",
+      "name": "PTPFA Plant",
+      "category": "Production",
+      "x": 1629.1267,
+      "y": 1154.5867,
+      "sourceBlocks": [
+        31
+      ],
+      "sourceLabel": "PTPFA PLANT",
+      "pdfAnchor": {
+        "x": 1010.4566040039062,
+        "y": 742.3414916992188
+      }
+    },
+    {
+      "id": "D1376-37",
+      "name": "Semicon Plant",
+      "category": "Production",
+      "x": 1729.1354,
+      "y": 1120.7464,
+      "sourceBlocks": [
+        37,
+        38
+      ],
+      "sourceLabel": "SEMICON / PLANT",
+      "pdfAnchor": {
+        "x": 1066.9614868164062,
+        "y": 723.2217407226562
+      }
+    },
+    {
+      "id": "D1376-39",
+      "name": "HGN Plant",
+      "category": "Production",
+      "x": 1590.974,
+      "y": 1232.4274,
+      "sourceBlocks": [
+        39
+      ],
+      "sourceLabel": "HGN PLANT",
+      "pdfAnchor": {
+        "x": 988.9003295898438,
+        "y": 786.3215026855469
+      }
+    },
+    {
+      "id": "D1376-93",
+      "name": "Admin",
+      "category": "Services",
+      "x": 261.4388,
+      "y": 554.7879,
+      "sourceBlocks": [
+        93
+      ],
+      "sourceLabel": "ADMIN",
+      "pdfAnchor": {
+        "x": 237.71294403076172,
+        "y": 403.45518493652344
+      }
+    },
+    {
+      "id": "D1376-387",
+      "name": "New Admin & Canteen",
+      "category": "Services",
+      "x": 185.7691,
+      "y": 235.5098,
+      "sourceBlocks": [
+        387
+      ],
+      "sourceLabel": "NEW ADMIN & CANTEEN",
+      "pdfAnchor": {
+        "x": 194.9595184326172,
+        "y": 223.0630111694336
+      }
+    },
+    {
+      "id": "D1376-92",
+      "name": "R & D Center",
+      "category": "Services",
+      "x": 283.5516,
+      "y": 641.549,
+      "sourceBlocks": [
+        92
+      ],
+      "sourceLabel": "R & D CENTER",
+      "pdfAnchor": {
+        "x": 250.20662689208984,
+        "y": 452.47520446777344
+      }
+    },
+    {
+      "id": "D1376-429",
+      "name": "Engineering Store",
+      "category": "Storage",
+      "x": 292.5957,
+      "y": 368.7001,
+      "sourceBlocks": [
+        429,
+        430
+      ],
+      "sourceLabel": "ENGINEERING / STORE",
+      "pdfAnchor": {
+        "x": 255.31655883789062,
+        "y": 298.3155517578125
+      }
+    },
+    {
+      "id": "D1376-425",
+      "name": "Central Workshop",
+      "category": "Services",
+      "x": 291.9383,
+      "y": 421.1642,
+      "sourceBlocks": [
+        425,
+        431
+      ],
+      "sourceLabel": "CENTRAL / WORKSHOP",
+      "pdfAnchor": {
+        "x": 254.94515991210938,
+        "y": 327.957763671875
+      }
+    },
+    {
+      "id": "D1376-158",
+      "name": "CPP Office",
+      "category": "Services",
+      "x": 1290.4169,
+      "y": 797.042,
+      "sourceBlocks": [
+        158
+      ],
+      "sourceLabel": "CPP OFFICE",
+      "pdfAnchor": {
+        "x": 819.0855712890625,
+        "y": 540.3287353515625
+      }
+    },
+    {
+      "id": "D1376-159",
+      "name": "Control Room",
+      "category": "Services",
+      "x": 1379.8476,
+      "y": 779.496,
+      "sourceBlocks": [
+        159,
+        160
+      ],
+      "sourceLabel": "CONTROL / ROOM",
+      "pdfAnchor": {
+        "x": 869.6138916015625,
+        "y": 530.4152221679688
+      }
+    },
+    {
+      "id": "D1376-335",
+      "name": "QC Lab & Control Room - A&H",
+      "category": "Services",
+      "x": 1375.2852,
+      "y": 438.7936,
+      "sourceBlocks": [
+        335,
+        336
+      ],
+      "sourceLabel": "QC LAB & CONTROL ROOM / - A&H",
+      "pdfAnchor": {
+        "x": 867.0361633300781,
+        "y": 337.91839599609375
+      }
+    },
+    {
+      "id": "D1376-322",
+      "name": "DI Water Utility Section",
+      "category": "Utilities",
+      "x": 656.5146,
+      "y": 566.8753,
+      "sourceBlocks": [
+        322
+      ],
+      "sourceLabel": "DI WATER UTILITY SECTION",
+      "pdfAnchor": {
+        "x": 460.93077087402344,
+        "y": 410.28453063964844
+      }
+    },
+    {
+      "id": "D1376-54",
+      "name": "D.I. Water Plant",
+      "category": "Utilities",
+      "x": 568.6286,
+      "y": 548.5918,
+      "sourceBlocks": [
+        54,
+        119
+      ],
+      "sourceLabel": "D. I. WATER / PLANT",
+      "pdfAnchor": {
+        "x": 411.27516174316406,
+        "y": 399.9543914794922
+      }
+    },
+    {
+      "id": "D1376-319",
+      "name": "Common Utility",
+      "category": "Utilities",
+      "x": 1140.4187,
+      "y": 303.5582,
+      "sourceBlocks": [
+        319,
+        320
+      ],
+      "sourceLabel": "COMMON / UTILITY",
+      "pdfAnchor": {
+        "x": 734.3365478515625,
+        "y": 261.51036071777344
+      }
+    },
+    {
+      "id": "D1376-414",
+      "name": "New Utility Block",
+      "category": "Utilities",
+      "x": 646.3341,
+      "y": 297.6546,
+      "sourceBlocks": [
+        414,
+        415
+      ],
+      "sourceLabel": "NEW UTILITY / BLOCK",
+      "pdfAnchor": {
+        "x": 455.1787872314453,
+        "y": 258.1748733520508
+      }
+    },
+    {
+      "id": "D1376-286",
+      "name": "Utility Augmentation",
+      "category": "Utilities",
+      "x": 504.3891,
+      "y": 874.0926,
+      "sourceBlocks": [
+        286
+      ],
+      "sourceLabel": "UTILITY AUGMENTATION",
+      "pdfAnchor": {
+        "x": 374.9798278808594,
+        "y": 583.8623046875
+      }
+    },
+    {
+      "id": "D1376-315",
+      "name": "Utility Section Near TFE-2",
+      "category": "Utilities",
+      "x": 613.788,
+      "y": 866.2724,
+      "sourceBlocks": [
+        315,
+        316
+      ],
+      "sourceLabel": "UTILITY SECTION / NEAR TFE-2",
+      "pdfAnchor": {
+        "x": 436.7902374267578,
+        "y": 579.4439086914062
+      }
+    },
+    {
+      "id": "D1376-296",
+      "name": "Water Treatment Plant",
+      "category": "Utilities",
+      "x": 1057.8087,
+      "y": 306.3757,
+      "sourceBlocks": [
+        296,
+        297
+      ],
+      "sourceLabel": "WATER TREATMENT / PLANT",
+      "pdfAnchor": {
+        "x": 687.6619262695312,
+        "y": 263.102294921875
+      }
+    },
+    {
+      "id": "D1376-67",
+      "name": "Nitrogen Plant",
+      "category": "Utilities",
+      "x": 1069.3655,
+      "y": 382.9289,
+      "sourceBlocks": [
+        67
+      ],
+      "sourceLabel": "NITROGEN PLANT",
+      "pdfAnchor": {
+        "x": 694.1915283203125,
+        "y": 306.3548278808594
+      }
+    },
+    {
+      "id": "D1376-78",
+      "name": "H2 Bottling Plant",
+      "category": "Production",
+      "x": 1055.4999,
+      "y": 661.9384,
+      "sourceBlocks": [
+        78,
+        79
+      ],
+      "sourceLabel": "H2 BOTTLING / PLANT",
+      "pdfAnchor": {
+        "x": 686.357421875,
+        "y": 463.9951934814453
+      }
+    },
+    {
+      "id": "D1376-306",
+      "name": "H2 Boiler",
+      "category": "Utilities",
+      "x": 1068.7209,
+      "y": 601.1721,
+      "sourceBlocks": [
+        306
+      ],
+      "sourceLabel": "H2 BOILER",
+      "pdfAnchor": {
+        "x": 693.8273010253906,
+        "y": 429.6622619628906
+      }
+    },
+    {
+      "id": "D1376-291",
+      "name": "Gas Based Power Plant & Expansion",
+      "category": "Utilities",
+      "x": 1160.8307,
+      "y": 878.1925,
+      "sourceBlocks": [
+        291,
+        292
+      ],
+      "sourceLabel": "GAS BASED POWER PLANT / & EXPANSION",
+      "pdfAnchor": {
+        "x": 745.8693542480469,
+        "y": 586.1787414550781
+      }
+    },
+    {
+      "id": "D1376-317",
+      "name": "Sub-station Near CPP",
+      "category": "Utilities",
+      "x": 1271.9819,
+      "y": 656.2873,
+      "sourceBlocks": [
+        317,
+        318
+      ],
+      "sourceLabel": "SUB-STATION / NEAR CPP",
+      "pdfAnchor": {
+        "x": 808.6697998046875,
+        "y": 460.80230712890625
+      }
+    },
+    {
+      "id": "D1376-181",
+      "name": "AFT Utility I",
+      "category": "Utilities",
+      "x": 1262.5505,
+      "y": 455.1774,
+      "sourceBlocks": [
+        181
+      ],
+      "sourceLabel": "AFT - UTILITY - I",
+      "pdfAnchor": {
+        "x": 803.3410339355469,
+        "y": 347.1752166748047
+      }
+    },
+    {
+      "id": "D1376-77",
+      "name": "ETP",
+      "category": "Utilities",
+      "x": 1021.7276,
+      "y": 800.8828,
+      "sourceBlocks": [
+        77
+      ],
+      "sourceLabel": "ETP",
+      "pdfAnchor": {
+        "x": 667.2760925292969,
+        "y": 542.498779296875
+      }
+    },
+    {
+      "id": "D1376-311",
+      "name": "New ETP",
+      "category": "Utilities",
+      "x": 951.2201,
+      "y": 927.4668,
+      "sourceBlocks": [
+        311
+      ],
+      "sourceLabel": "NEW ETP",
+      "pdfAnchor": {
+        "x": 627.4393615722656,
+        "y": 614.0187683105469
+      }
+    },
+    {
+      "id": "D1376-389",
+      "name": "ETP 552 KLD",
+      "category": "Utilities",
+      "x": 970.1017,
+      "y": 1012.9952,
+      "sourceBlocks": [
+        389
+      ],
+      "sourceLabel": "ETP 552 KLD",
+      "pdfAnchor": {
+        "x": 638.1074523925781,
+        "y": 662.34228515625
+      }
+    },
+    {
+      "id": "D1376-288",
+      "name": "Sludge Lagoon",
+      "category": "Utilities",
+      "x": 1490.4475,
+      "y": 859.3961,
+      "sourceBlocks": [
+        288
+      ],
+      "sourceLabel": "SLUDGE LAGOON",
+      "pdfAnchor": {
+        "x": 932.1028442382812,
+        "y": 575.5587768554688
+      }
+    },
+    {
+      "id": "D1376-285",
+      "name": "Guard Pond",
+      "category": "Utilities",
+      "x": 953.3649,
+      "y": 840.9599,
+      "sourceBlocks": [
+        285
+      ],
+      "sourceLabel": "GUARD POND",
+      "pdfAnchor": {
+        "x": 628.6511535644531,
+        "y": 565.142333984375
+      }
+    },
+    {
+      "id": "D1376-226",
+      "name": "Pond - West",
+      "category": "Utilities",
+      "x": 1230.1129,
+      "y": 295.4606,
+      "sourceBlocks": [
+        226
+      ],
+      "sourceLabel": "POND",
+      "pdfAnchor": {
+        "x": 785.0137634277344,
+        "y": 256.9352340698242
+      }
+    },
+    {
+      "id": "D1376-116",
+      "name": "Flaker Plant",
+      "category": "Production",
+      "x": 901.467,
+      "y": 806.6589,
+      "sourceBlocks": [
+        116,
+        117
+      ],
+      "sourceLabel": "FLAKER / PLANT",
+      "pdfAnchor": {
+        "x": 599.328857421875,
+        "y": 545.7622985839844
+      }
+    },
+    {
+      "id": "D1376-138",
+      "name": "Caustic Storage Tanks",
+      "category": "Storage",
+      "x": 930.933,
+      "y": 754.6206,
+      "sourceBlocks": [
+        138,
+        139
+      ],
+      "sourceLabel": "CAUSTIC STORAGE / TANKS",
+      "pdfAnchor": {
+        "x": 615.9771423339844,
+        "y": 516.3606567382812
+      }
+    },
+    {
+      "id": "D1376-140",
+      "name": "Chlorine Bottling Store",
+      "category": "Storage",
+      "x": 1088.5524,
+      "y": 447.4022,
+      "sourceBlocks": [
+        140
+      ],
+      "sourceLabel": "CHLORINE BOTTLING STORE",
+      "pdfAnchor": {
+        "x": 705.0321044921875,
+        "y": 342.7822570800781
+      }
+    },
+    {
+      "id": "D1376-59",
+      "name": "15-CMS Tank Area",
+      "category": "Storage",
+      "x": 932.665,
+      "y": 236.0749,
+      "sourceBlocks": [
+        59
+      ],
+      "sourceLabel": "15-CMS TANK AREA",
+      "pdfAnchor": {
+        "x": 616.9557495117188,
+        "y": 223.3823013305664
+      }
+    },
+    {
+      "id": "D1376-175",
+      "name": "HCL / PW Tankfarm",
+      "category": "Storage",
+      "x": 1055.4983,
+      "y": 162.46,
+      "sourceBlocks": [
+        175
+      ],
+      "sourceLabel": "HCL/PW TANKFARM",
+      "pdfAnchor": {
+        "x": 686.3565673828125,
+        "y": 181.78987884521484
+      }
+    },
+    {
+      "id": "D1376-169",
+      "name": "H2SO4 / Oleum Tankfarm",
+      "category": "Storage",
+      "x": 1223.6709,
+      "y": 155.0263,
+      "sourceBlocks": [
+        169,
+        170
+      ],
+      "sourceLabel": "H2SO4/OLEUM / TANKFARM",
+      "pdfAnchor": {
+        "x": 781.3740539550781,
+        "y": 177.5898666381836
+      }
+    },
+    {
+      "id": "D1376-87",
+      "name": "Methanol Tank",
+      "category": "Storage",
+      "x": 783.503,
+      "y": 352.358,
+      "sourceBlocks": [
+        87,
+        88
+      ],
+      "sourceLabel": "METHANOL / TANK",
+      "pdfAnchor": {
+        "x": 532.6791687011719,
+        "y": 289.082275390625
+      }
+    },
+    {
+      "id": "D1376-295",
+      "name": "CMS Drum Filling Storage",
+      "category": "Storage",
+      "x": 1130.4833,
+      "y": 262.7297,
+      "sourceBlocks": [
+        295
+      ],
+      "sourceLabel": "STORAGE CMS DRUM FILLING",
+      "pdfAnchor": {
+        "x": 728.7230529785156,
+        "y": 238.44229888916016
+      }
+    },
+    {
+      "id": "D1376-70",
+      "name": "Monomer Storage Area",
+      "category": "Storage",
+      "x": 520.8141,
+      "y": 263.7784,
+      "sourceBlocks": [
+        70
+      ],
+      "sourceLabel": "MONOMER STORAGE AREA",
+      "pdfAnchor": {
+        "x": 384.2599792480469,
+        "y": 239.03482055664062
+      }
+    },
+    {
+      "id": "D1376-184",
+      "name": "AHF Day Storage Tank",
+      "category": "Storage",
+      "x": 1371.2536,
+      "y": 589.3625,
+      "sourceBlocks": [
+        184
+      ],
+      "sourceLabel": "AHF DAY STORAGE TANK",
+      "pdfAnchor": {
+        "x": 864.75830078125,
+        "y": 422.9898223876953
+      }
+    },
+    {
+      "id": "D1376-178",
+      "name": "AHF Recycle Acid Tank",
+      "category": "Storage",
+      "x": 1380.7634,
+      "y": 490.8139,
+      "sourceBlocks": [
+        178,
+        179
+      ],
+      "sourceLabel": "RECYCLE ACID TANK / AHF",
+      "pdfAnchor": {
+        "x": 870.1313171386719,
+        "y": 367.30982971191406
+      }
+    },
+    {
+      "id": "D1376-375",
+      "name": "Coal Yard",
+      "category": "Storage",
+      "x": 1752.4602,
+      "y": 544.104,
+      "sourceBlocks": [
+        375
+      ],
+      "sourceLabel": "COAL YARD",
+      "pdfAnchor": {
+        "x": 1080.1400146484375,
+        "y": 397.4187469482422
+      }
+    },
+    {
+      "id": "D1376-413",
+      "name": "Lime Stone Yard",
+      "category": "Storage",
+      "x": 1530.8055,
+      "y": 644.3803,
+      "sourceBlocks": [
+        413
+      ],
+      "sourceLabel": "LIME STONE YARD",
+      "pdfAnchor": {
+        "x": 954.9050903320312,
+        "y": 454.0748596191406
+      }
+    },
+    {
+      "id": "D1376-302",
+      "name": "Existing Fluorspar Storage",
+      "category": "Storage",
+      "x": 1495.5812,
+      "y": 574.4833,
+      "sourceBlocks": [
+        302,
+        303
+      ],
+      "sourceLabel": "EXISTING FLUORSPAR / STORAGE",
+      "pdfAnchor": {
+        "x": 935.0033569335938,
+        "y": 414.5830383300781
+      }
+    },
+    {
+      "id": "D1376-299",
+      "name": "Tank Farm Near New CaCl2 Plant",
+      "category": "Storage",
+      "x": 1676.5728,
+      "y": 528.0259,
+      "sourceBlocks": [
+        299,
+        300,
+        301
+      ],
+      "sourceLabel": "TANK FARM / NEAR NEW CACL2 / PLANT",
+      "pdfAnchor": {
+        "x": 1037.2636108398438,
+        "y": 388.33460998535156
+      }
+    },
+    {
+      "id": "D1376-405",
+      "name": "Contractor Yard",
+      "category": "Services",
+      "x": 1747.0477,
+      "y": 386.0863,
+      "sourceBlocks": [
+        405
+      ],
+      "sourceLabel": "CONTRACTOR YARD",
+      "pdfAnchor": {
+        "x": 1077.0819702148438,
+        "y": 308.1387481689453
+      }
+    },
+    {
+      "id": "D1376-388",
+      "name": "Salt Storage - West",
+      "category": "Storage",
+      "x": 634.7819,
+      "y": 1041.3492,
+      "sourceBlocks": [
+        388
+      ],
+      "sourceLabel": "SALT STORAGE",
+      "pdfAnchor": {
+        "x": 448.6517639160156,
+        "y": 678.3623046875
+      }
+    },
+    {
+      "id": "D1376-392",
+      "name": "Salt Storage - Central",
+      "category": "Storage",
+      "x": 759.8793,
+      "y": 1030.305,
+      "sourceBlocks": [
+        392
+      ],
+      "sourceLabel": "SALT STORAGE",
+      "pdfAnchor": {
+        "x": 519.3318023681641,
+        "y": 672.122314453125
+      }
+    },
+    {
+      "id": "D1376-393",
+      "name": "Salt Storage - East",
+      "category": "Storage",
+      "x": 871.5278,
+      "y": 1021.2785,
+      "sourceBlocks": [
+        393
+      ],
+      "sourceLabel": "SALT STORAGE",
+      "pdfAnchor": {
+        "x": 582.4132080078125,
+        "y": 667.0223388671875
+      }
+    },
+    {
+      "id": "D1376-435",
+      "name": "Fire Water Reservoir",
+      "category": "Utilities",
+      "x": 1563.7208,
+      "y": 178.9352,
+      "sourceBlocks": [
+        435
+      ],
+      "sourceLabel": "FIRE WATER RESEARVIOUR",
+      "pdfAnchor": {
+        "x": 973.5022277832031,
+        "y": 191.09839630126953
+      }
+    },
+    {
+      "id": "D1376-359",
+      "name": "GSPL Gas Station - North",
+      "category": "Utilities",
+      "x": 1677.5707,
+      "y": 192.2885,
+      "sourceBlocks": [
+        359
+      ],
+      "sourceLabel": "GSPL GAS STATION",
+      "pdfAnchor": {
+        "x": 1037.8274536132812,
+        "y": 198.64302825927734
+      }
+    },
+    {
+      "id": "D1376-373",
+      "name": "GSPL Gas Station - South",
+      "category": "Utilities",
+      "x": 1246.415,
+      "y": 921.0952,
+      "sourceBlocks": [
+        373,
+        374
+      ],
+      "sourceLabel": "GSPL / GAS STATION",
+      "pdfAnchor": {
+        "x": 794.2244873046875,
+        "y": 610.4187622070312
+      }
+    },
+    {
+      "id": "D1376-436",
+      "name": "Material Gate Entry",
+      "category": "Access",
+      "x": 56.366,
+      "y": 268.635,
+      "sourceBlocks": [
+        436,
+        437
+      ],
+      "sourceLabel": "MATERIAL / GATE ENTRY",
+      "pdfAnchor": {
+        "x": 121.84681701660156,
+        "y": 241.7787628173828
+      }
+    },
+    {
+      "id": "D1376-438",
+      "name": "Material Gate Exit",
+      "category": "Access",
+      "x": 45.3218,
+      "y": 42.5465,
+      "sourceBlocks": [
+        438,
+        439,
+        440
+      ],
+      "sourceLabel": "MATERIAL / GATE / EXIT",
+      "pdfAnchor": {
+        "x": 115.6068229675293,
+        "y": 114.03874969482422
+      }
+    },
+    {
+      "id": "D1376-441",
+      "name": "Main Gate Entry",
+      "category": "Access",
+      "x": 108.3954,
+      "y": 497.9093,
+      "sourceBlocks": [
+        441
+      ],
+      "sourceLabel": "MAIN GATE ENTRY",
+      "pdfAnchor": {
+        "x": 151.2433853149414,
+        "y": 371.31874084472656
+      }
+    },
+    {
+      "id": "D1376-442",
+      "name": "Labour Gate",
+      "category": "Access",
+      "x": 1008.8278,
+      "y": 63.1482,
+      "sourceBlocks": [
+        442,
+        443
+      ],
+      "sourceLabel": "LABOUR / GATE",
+      "pdfAnchor": {
+        "x": 659.9877319335938,
+        "y": 125.67876052856445
+      }
+    },
+    {
+      "id": "D1376-444",
+      "name": "Main Gate Entry & Exit - South",
+      "category": "Access",
+      "x": 1948.5942,
+      "y": 1276.9536,
+      "sourceBlocks": [
+        444
+      ],
+      "sourceLabel": "MAIN GATE ENTRY & EXIT",
+      "pdfAnchor": {
+        "x": 1190.9557495117188,
+        "y": 811.478759765625
+      }
+    },
+    {
+      "id": "D1376-416",
+      "name": "Salt Truck Entry",
+      "category": "Access",
+      "x": 422.8179,
+      "y": 1050.3341,
+      "sourceBlocks": [
+        416
+      ],
+      "sourceLabel": "SALT TRUCK ENTRY",
+      "pdfAnchor": {
+        "x": 328.8921203613281,
+        "y": 683.4387817382812
+      }
+    }
+  ]
+}

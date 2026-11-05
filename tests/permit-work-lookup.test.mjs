@@ -280,9 +280,9 @@ test('create body uses server numbering and excludes unsupported and manufacture
   assert.equal(body._HazardControl[0].ItemNo, '1');
 });
 
-test('create validation rejects missing real work, crew, controls, expired or reversed validity and overlong fields', () => {
+test('create validation rejects missing real work, inconsistent crew count, controls, expired or reversed validity and overlong fields', () => {
   for (const change of [
-    { Aufnr: '', Qmnum: '' }, { PermitType: '' }, { SupvName: '' }, { _Worker: [] }, { PersonsQty: 2 },
+    { Aufnr: '', Qmnum: '' }, { PermitType: '' }, { _Worker: [] }, { PersonsQty: 2 },
     { _HazardControl: [] }, { ValidToT: '07:00' }, { ValidFromD: '2000-01-01', ValidToD: '2000-01-02' },
     { Tplnr: 'X'.repeat(41) }, { JobDesc: 'X'.repeat(256) }, { PersonsQty: -1 },
   ]) assert.throws(() => preparePermitCreate({ ...validPermit(), ...change }));

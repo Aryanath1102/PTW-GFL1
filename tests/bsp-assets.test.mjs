@@ -73,3 +73,26 @@ test('SAP upload rules classify the icon font and logo as binary', async () => {
     assert.ok(!rules.some(rule => rule.test(name)), `Text must not be uploaded as binary: ${name}`);
   }
 });
+
+test('production upload excludes source files, credentials, maps and development identities', async () => {
+  const entries = await readdir(dist, {recursive: true});
+  for (const name of entries) {
+    assert.doesNotMatch(name, /(^|[\\/])(?:\.env(?:\.|$)|node_modules|src)(?:[\\/]|$)|\.(?:map|tsx?|pem|key)$/i);
+  }
+  const html = await readFile(resolve(dist, 'index.html'), 'utf8');
+  assert.doesNotMatch(html, /(?:src|href)=["'](?:https?:)?\/\//i);
+  const scripts = (await Promise.all(assets.filter(name => name.endsWith('.js')).map(name => readFile(resolve(dist, 'assets', name), 'utf8')))).join('\n');
+  for (const forbidden of ['VERTIF-V', 'vhgfldevci.sap.gfl.co.in', 'INITIAL_ADMIN_USER_ROLE', 'localRolesStore', 'VITE_INITIAL_USER_ID']) {
+    assert.ok(!scripts.includes(forbidden), 'Production contains ' + forbidden);
+  }
+  assert.ok(scripts.includes('/sap/bc/ui2/start_up'));
+  assert.ok(scripts.includes('/sap/opu/odata4/'));
+});
+
+test('new plant drawing and original PDF are included intact in the BSP package', async () => {
+  for (const name of ['maps/gfl-a-d1376.png','maps/GFL-COM-CIVL-LYOD-D1376.pdf']) {
+    assert.deepEqual(await readFile(resolve(dist,name)),await readFile(resolve('public',name)),name);
+    const rules=(await readFile(resolve(dist,'.Ui5RepositoryBinaryFiles'),'utf8')).split(/\r?\n/).filter(Boolean).map(line=>new RegExp(line));
+    assert.ok(rules.some(rule=>rule.test(name)),name+' must be uploaded as binary');
+  }
+});

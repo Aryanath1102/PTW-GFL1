@@ -215,7 +215,7 @@ export const IsolationWorkspace: React.FC<IsolationWorkspaceProps> = ({ module, 
       setAvailablePermits(res.map((p) => p.Permit_No).filter(Boolean));
     }).catch(() => {
       try {
-        if (typeof window !== 'undefined' && window.localStorage) {
+        if (import.meta.env.DEV && typeof window !== 'undefined' && window.localStorage) {
           const stored = JSON.parse(window.localStorage.getItem('ptw_recent_created_permits') || '[]');
           setAvailablePermits(stored.map((p: any) => p?.Permit_No).filter(Boolean));
         }
@@ -1460,7 +1460,7 @@ export const IsolationWorkspace: React.FC<IsolationWorkspaceProps> = ({ module, 
                 <input
                   type="text"
                   disabled
-                  value={user?.id || 'VERTIF-V'}
+                  value={user?.id || ''}
                   className="mt-1 block w-full rounded-lg border border-slate-200 bg-slate-50 p-2 font-mono text-xs text-slate-500 cursor-not-allowed"
                 />
               </label>

@@ -1,0 +1,223 @@
+TAP version 13
+# [adminApi] Live SAP /UserRole fetch failed, using local store: TypeError: Invalid URL
+#     at new URL (node:internal/url:816:29)
+#     at dispatchHttpRequest (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18677:20)
+#     at eval (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18493:5)
+#     at new Promise (<anonymous>)
+#     at wrapAsync (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18477:10)
+#     at http (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18558:10)
+#     at Axios.dispatchRequest (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20362:10)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+#     at async Axios.request (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20484:14)
+#     at async Object.getUserRoles (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:23275:24)
+#     at Axios.request (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20489:43)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+#     at async Object.getUserRoles (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:23275:24)
+#     at async TestContext.<anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:265:20)
+#     at async Test.run (node:internal/test_runner/test:931:9)
+#     at async Test.processPendingSubtests (node:internal/test_runner/test:629:7) {
+#   code: 'ERR_INVALID_URL',
+#   input: '/sap/opu/odata4/sap/zptw_mamagement_srv/srvd_a2x/sap/zptw_services/0001/UserRole'
+# }
+# [adminApi] Live SAP /UserRole unfiltered fetch failed: TypeError: Invalid URL
+#     at new URL (node:internal/url:816:29)
+#     at dispatchHttpRequest (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18677:20)
+#     at eval (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18493:5)
+#     at new Promise (<anonymous>)
+#     at wrapAsync (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18477:10)
+#     at http (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18558:10)
+#     at Axios.dispatchRequest (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20362:10)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+#     at async Axios.request (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20484:14)
+#     at async Object.getUserRoles (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:23288:34)
+#     at Axios.request (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20489:43)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+#     at async Object.getUserRoles (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:23288:34)
+#     at async TestContext.<anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:269:22)
+#     at async Test.run (node:internal/test_runner/test:931:9)
+#     at async Test.processPendingSubtests (node:internal/test_runner/test:629:7) {
+#   code: 'ERR_INVALID_URL',
+#   input: '/sap/opu/odata4/sap/zptw_mamagement_srv/srvd_a2x/sap/zptw_services/0001/UserRole'
+# }
+# [adminApi] Live SAP /UserRole unfiltered fetch failed: TypeError: Invalid URL
+#     at new URL (node:internal/url:816:29)
+#     at dispatchHttpRequest (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18677:20)
+#     at eval (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18493:5)
+#     at new Promise (<anonymous>)
+#     at wrapAsync (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18477:10)
+#     at http (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18558:10)
+#     at Axios.dispatchRequest (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20362:10)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+#     at async Axios.request (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20484:14)
+#     at async Object.getUserRoles (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:23288:34)
+#     at Axios.request (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20489:43)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+#     at async Object.getUserRoles (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:23288:34)
+#     at async TestContext.<anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:272:22)
+#     at async Test.run (node:internal/test_runner/test:931:9)
+#     at async Test.processPendingSubtests (node:internal/test_runner/test:629:7) {
+#   code: 'ERR_INVALID_URL',
+#   input: '/sap/opu/odata4/sap/zptw_mamagement_srv/srvd_a2x/sap/zptw_services/0001/UserRole'
+# }
+# [SapODataClient] SAP CSRF token request failed across all probe endpoints.
+# [adminApi] Live POST /UserRole failed, updating local fallback cache: Error: SAP did not return a CSRF token. Sign in again before saving.
+#     at eval (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:21018:33)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+#     at async Axios.request (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20484:14)
+#     at async Object.createUserRole (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:23349:24)
+#     at async TestContext.<anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:281:19)
+#     at async Test.run (node:internal/test_runner/test:931:9)
+#     at async Test.processPendingSubtests (node:internal/test_runner/test:629:7) {
+#   beforeSend: true
+# }
+# [SapODataClient] SAP CSRF token request failed across all probe endpoints.
+# [adminApi] Live PATCH /UserRole failed, updating local cache: Error: SAP did not return a CSRF token. Sign in again before saving.
+#     at eval (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:21018:33)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+#     at async Axios.request (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20484:14)
+#     at async Object.updateUserRoleStatus (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:23376:24)
+#     at async TestContext.<anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:291:19)
+#     at async Test.run (node:internal/test_runner/test:931:9)
+#     at async Test.processPendingSubtests (node:internal/test_runner/test:629:7) {
+#   beforeSend: true
+# }
+# [SapODataClient] SAP CSRF token request failed across all probe endpoints.
+# [adminApi] Live DELETE /UserRole failed, purging local cache: Error: SAP did not return a CSRF token. Sign in again before saving.
+#     at eval (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:21018:33)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+#     at async Axios.request (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20484:14)
+#     at async Object.deleteUserRole (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:23413:7)
+#     at async TestContext.<anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:295:19)
+#     at async Test.run (node:internal/test_runner/test:931:9)
+#     at async Test.processPendingSubtests (node:internal/test_runner/test:629:7) {
+#   beforeSend: true
+# }
+# [adminApi] Live SAP /UserRole unfiltered fetch failed: TypeError: Invalid URL
+#     at new URL (node:internal/url:816:29)
+#     at dispatchHttpRequest (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18677:20)
+#     at eval (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18493:5)
+#     at new Promise (<anonymous>)
+#     at wrapAsync (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18477:10)
+#     at http (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:18558:10)
+#     at Axios.dispatchRequest (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20362:10)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+#     at async Axios.request (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20484:14)
+#     at async Object.getUserRoles (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:23288:34)
+#     at Axios.request (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:20489:43)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+#     at async Object.getUserRoles (eval at <anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:26:1), <anonymous>:23288:34)
+#     at async TestContext.<anonymous> (file:///D:/App/PTW/tests/admin-user-roles.test.mjs:299:22)
+#     at async Test.run (node:internal/test_runner/test:931:9)
+#     at async Test.processPendingSubtests (node:internal/test_runner/test:629:7) {
+#   code: 'ERR_INVALID_URL',
+#   input: '/sap/opu/odata4/sap/zptw_mamagement_srv/srvd_a2x/sap/zptw_services/0001/UserRole'
+# }
+# Subtest: ODATA_ENTITIES exposes USER_ROLE and PFCG_USERS as exact match to SAP OData V4 service
+ok 1 - ODATA_ENTITIES exposes USER_ROLE and PFCG_USERS as exact match to SAP OData V4 service
+  ---
+  duration_ms: 2.4722
+  ...
+# Subtest: Live SAP /PFCGUsers response payload conforms to schema with SAPUser, FullName, and Email
+ok 2 - Live SAP /PFCGUsers response payload conforms to schema with SAPUser, FullName, and Email
+  ---
+  duration_ms: 3.5969
+  ...
+# Subtest: Live SAP /UserRole response payload conforms to SapUserRoleRecord schema
+ok 3 - Live SAP /UserRole response payload conforms to SapUserRoleRecord schema
+  ---
+  duration_ms: 0.3615
+  ...
+# Subtest: Role normalization handles PTW_* and ZPTW_* prefixes bidirectionally
+ok 4 - Role normalization handles PTW_* and ZPTW_* prefixes bidirectionally
+  ---
+  duration_ms: 0.299
+  ...
+# Subtest: Admin module definition is configured in MODULE_REGISTRY with PTW_ADMIN authorization
+ok 5 - Admin module definition is configured in MODULE_REGISTRY with PTW_ADMIN authorization
+  ---
+  duration_ms: 0.2306
+  ...
+# Subtest: User with PTW_ADMIN or ZPTW_ADMIN unlocks all modules across the application
+ok 6 - User with PTW_ADMIN or ZPTW_ADMIN unlocks all modules across the application
+  ---
+  duration_ms: 0.3247
+  ...
+# Subtest: PTW_ROLE_CATALOG covers all core operational roles with labels and icons
+ok 7 - PTW_ROLE_CATALOG covers all core operational roles with labels and icons
+  ---
+  duration_ms: 0.7473
+  ...
+# Subtest: adminApi.computeRoleStats correctly calculates role metrics and active users
+ok 8 - adminApi.computeRoleStats correctly calculates role metrics and active users
+  ---
+  duration_ms: 0.3787
+  ...
+# Subtest: adminApi.getUserRoles filters by active status and user account
+ok 9 - adminApi.getUserRoles filters by active status and user account
+  ---
+  duration_ms: 19.9728
+  ...
+# Subtest: adminApi.createUserRole and updateUserRoleStatus perform expected data lifecycle
+ok 10 - adminApi.createUserRole and updateUserRoleStatus perform expected data lifecycle
+  ---
+  duration_ms: 20.7353
+  ...
+# Subtest: adminApi sends X for Active and empty string for Inactive in SAP payloads
+ok 11 - adminApi sends X for Active and empty string for Inactive in SAP payloads
+  ---
+  duration_ms: 2.6315
+  ...
+# Subtest: admin role reads normalize only X and use the SAP character filter
+ok 12 - admin role reads normalize only X and use the SAP character filter
+  ---
+  duration_ms: 0.8459
+  ...
+# Subtest: unverified SAP session cannot grant the former hard-coded administrator
+ok 13 - unverified SAP session cannot grant the former hard-coded administrator
+  ---
+  duration_ms: 288.7374
+  ...
+# Subtest: startup identity takes precedence over URL hints and must match manual identity
+ok 14 - startup identity takes precedence over URL hints and must match manual identity
+  ---
+  duration_ms: 39.3015
+  ...
+# Subtest: userinfo membership grants entry but enterprise roles grant no modules
+ok 15 - userinfo membership grants entry but enterprise roles grant no modules
+  ---
+  duration_ms: 48.1464
+  ...
+# Subtest: only matching active UserRole assignments grant modules and approval tiers stay distinct
+ok 16 - only matching active UserRole assignments grant modules and approval tiers stay distinct
+  ---
+  duration_ms: 58.5802
+  ...
+# Subtest: active administrator grants admin; later empty or failed roles do not restore permissions
+ok 17 - active administrator grants admin; later empty or failed roles do not restore permissions
+  ---
+  duration_ms: 42.9524
+  ...
+# Subtest: only exact SAP X is active; legacy booleans, empty and other values deny access
+ok 18 - only exact SAP X is active; legacy booleans, empty and other values deny access
+  ---
+  duration_ms: 28.4227
+  ...
+# Subtest: password credentials are allowed only in development and still require matching SAP identity
+ok 19 - password credentials are allowed only in development and still require matching SAP identity
+  ---
+  duration_ms: 62.93
+  ...
+# Subtest: logout invalidates an in-flight login
+ok 20 - logout invalidates an in-flight login
+  ---
+  duration_ms: 27.3104
+  ...
+1..20
+# tests 20
+# suites 0
+# pass 20
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 761.3102

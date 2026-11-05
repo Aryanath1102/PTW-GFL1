@@ -1,0 +1,36 @@
+{
+  "package": "ptw-bsp-test-20261029-153047.zip",
+  "sha256": "4e7f061161c45c40c8c1088f527c281259c3949d4d8ab682e8914ab47b11e0cc",
+  "files": [
+    {
+      "file": ".Ui5RepositoryBinaryFiles",
+      "bytes": 23,
+      "sha256": "782b3f2b5cf79c72bd48541335d106afd476a3236e52562ad707bf053d070147"
+    },
+    {
+      "file": "assets/index-CDnOI8s_.css",
+      "bytes": 5525992,
+      "sha256": "6f1a0ea6edd1b89624b0214a49bcd3a27b36bd28952c0b601c8637cc0087dfb9"
+    },
+    {
+      "file": "assets/index-DlOBmErr.js",
+      "bytes": 1590877,
+      "sha256": "79115526feb388f00febd77960063f560ef344d663c15b62069779018a20e249"
+    },
+    {
+      "file": "GFL-Logo.webp",
+      "bytes": 8580,
+      "sha256": "cfdc4a6cf808818942a122583b5b52a9abc68d75dbca3ffdb4f16af7963858a3"
+    },
+    {
+      "file": "index.html",
+      "bytes": 8415,
+      "sha256": "230f5b6d5f2dc6a369623913785dd5c49f5fa5134fd80c771e9bb8dcb89727ec"
+    },
+    {
+      "file": "licenses/LICENSE.material-symbols.txt",
+      "bytes": 11357,
+      "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+    }
+  ]
+}

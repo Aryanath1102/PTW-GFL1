@@ -66,6 +66,24 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
   // Local Findability State (Instant Client-side Filter & Inspect)
   const [tableQuery, setTableQuery] = useState<string>('');
   const [expandedPermitNo, setExpandedPermitNo] = useState<string | null>(null);
+  const [previewHistoryError, setPreviewHistoryError] = useState('');
+  const [loadingPreviewHistory, setLoadingPreviewHistory] = useState(false);
+  useEffect(() => {
+    if (!expandedPermitNo) return;
+    const controller = new AbortController();
+    setPreviewHistoryError('');
+    setLoadingPreviewHistory(true);
+    void permitApproverApi.getApprovals(expandedPermitNo, controller.signal).then(records => {
+      if (!controller.signal.aborted) setPermits(current => current.map(p =>
+        p.Permit_No === expandedPermitNo ? { ...p, _Approval: records } : p
+      ));
+    }).catch(() => {
+      if (!controller.signal.aborted) setPreviewHistoryError('Approval history could not be loaded. Open the permit and refresh to verify the rejecting stage and remarks.');
+    }).finally(() => {
+      if (!controller.signal.aborted) setLoadingPreviewHistory(false);
+    });
+    return () => controller.abort();
+  }, [expandedPermitNo, plant]);
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const [jsaFilter, setJsaFilter] = useState<'ALL' | 'YES' | 'NO' | 'NA'>('ALL');
   const [jsaSearch, setJsaSearch] = useState<string>('');
@@ -81,13 +99,22 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
   const lastBaselinePlantRef = useRef<string>(plant);
   const [selectedPermit, setSelectedPermit] = useState<PermitDeepInsertResponse | null>(null);
 
-  // Guarantee view changes (switching between list and detail, or switching tabs) open at the top
+  // A refresh keeps the reader's place; only navigating to another permit resets it.
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
-  }, [viewMode, activeTab, selectedPermit]);
+  }, [viewMode, selectedPermit?.Permit_No]);
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingDetail, setLoadingDetail] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [refreshFailed, setRefreshFailed] = useState(false);
+  const [clockNow, setClockNow] = useState(Date.now);
+  useEffect(() => {
+    const tick = () => setClockNow(Date.now());
+    const timer = window.setInterval(tick, 30000);
+    window.addEventListener('focus', tick);
+    return () => { window.clearInterval(timer); window.removeEventListener('focus', tick); };
+  }, []);
   const [offset, setOffset] = useState<number>(0);
   const [hasSearched, setHasSearched] = useState<boolean>(false);
   const [updatingPrereq, setUpdatingPrereq] = useState<boolean>(false);
@@ -253,7 +280,7 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
     setShowApprovalModal(true);
   };
 
-  const handleSubmitApproval = async (customSignedBy?: string) => {
+  const handleSubmitApproval = async () => {
     if (!selectedPermit) return;
 
     if ((approvalAction === 'CAO' || approvalAction === 'RAO') && !hasAreaOperatorRole) {
@@ -278,7 +305,8 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
       const effectiveRoleId = step.roleId;
       const effectiveStage = step.stage;
 
-      const signedBy = (customSignedBy || user?.id || user?.fullName || 'VERTIF-V').trim();
+      const signedBy = (user?.id || '').trim();
+      if (!signedBy) throw new Error('Your SAP session must be verified before signing.');
       if (approvalAction === 'AP') {
         // Dedicated SAP RAP Approve Action:
         // /Approval/com.sap.gateway.srvd_a2x.zptw_services.v0001.approve
@@ -338,7 +366,7 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
   };
 
   const handleResubmitPermit = async () => {
-    if (!selectedPermit) return;
+    if (!selectedPermit || submittingResubmit) return;
 
     if (resubmitMode === 'quick_edit') {
       if (editSupvPhone.trim()) {
@@ -589,6 +617,7 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
     abortControllerRef.current = controller;
 
     setLoading(true);
+    setLoadingDetail(false);
     setError('');
     const effCategory = overrideCategory !== undefined ? overrideCategory : categoryFilter;
     const effStatus = overrideStatus !== undefined ? overrideStatus : statusFilter;
@@ -609,11 +638,14 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
         setTotalCount(data.totalCount);
         setOffset(skip);
         setHasSearched(true);
+        setLastUpdated(Date.now());
+        setRefreshFailed(false);
       }
     } catch (err) {
       if (!controller.signal.aborted) {
         const msg = err instanceof Error ? err.message : 'Failed to retrieve permits from SAP Gateway.';
         setError(msg);
+        setRefreshFailed(true);
         toast.error(msg, { title: 'SAP Gateway Error' });
       }
     } finally {
@@ -631,19 +663,25 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
     abortControllerRef.current = controller;
 
     setLoadingDetail(true);
+    setLoading(false);
     setError('');
     try {
       const data = await sitePermitApi.read(permitNo.trim(), controller.signal);
       if (!controller.signal.aborted) {
         setSelectedPermit(data);
         setViewMode('detail');
-        setActiveTab('overview');
-        setDossierSearch('');
+        if (selectedPermit?.Permit_No !== data.Permit_No || viewMode !== 'detail') {
+          setActiveTab('overview');
+          setDossierSearch('');
+        }
+        setLastUpdated(Date.now());
+        setRefreshFailed(false);
       }
     } catch (err) {
       if (!controller.signal.aborted) {
         const msg = err instanceof Error ? err.message : `Unable to load details for permit ${permitNo}.`;
         setError(msg);
+        setRefreshFailed(true);
         toast.error(msg, { title: 'Permit Details Error' });
       }
     } finally {
@@ -859,7 +897,7 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
   // Helper: Calculate Validity Status & Time remaining
   const calculateValidity = (validFromD: string | null, validFromT: string, validToD: string | null, validToT: string) => {
     if (!validFromD || !validToD) return { status: 'UNKNOWN', text: 'No dates set', percent: 0, color: 'text-slate-500', badgeBg: 'bg-slate-100 text-slate-600' };
-    const now = Date.now();
+    const now = clockNow;
     const start = new Date(`${validFromD}T${validFromT || '00:00:00'}+05:30`).getTime();
     const end = new Date(`${validToD}T${validToT || '23:59:59'}+05:30`).getTime();
 
@@ -963,18 +1001,17 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                   <span>Permit {selectedPermit.Permit_No}</span>
                 </span>
               ) : (
-                <span className="font-semibold text-slate-800">Master Register</span>
+                <span className="font-semibold text-slate-800">Permit register</span>
               )}
             </div>
 
-            <div className="hidden lg:flex items-center gap-2 pl-3 border-l border-slate-200 text-[11px] font-mono text-slate-500">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
-              <span>SAP Gateway Live (V4) · Plant {plant}</span>
+            <div className="flex items-center gap-2 text-xs text-slate-600">
+              <span role="status">{loading || loadingDetail ? 'Refreshing…' : refreshFailed ? 'Refresh failed · displayed data may be outdated' : lastUpdated ? `Updated ${new Date(lastUpdated).toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })} IST` : 'Not yet loaded'} · Plant {plant}</span>
             </div>
           </div>
 
-          {/* Quick Lookup Bar & Header Actions */}
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          {/* Open another permit from the detail view */}
+          {viewMode === 'detail' && <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <form onSubmit={handleQuickLookup} className="flex items-center gap-1.5 relative">
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-2 text-[16px] text-slate-400">
@@ -984,7 +1021,8 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                   type="text"
                   value={quickLookupNo}
                   onChange={e => setQuickLookupNo(e.target.value.toUpperCase())}
-                  placeholder="Direct Jump (e.g. PTW0000013)"
+                  aria-label="Open a permit by number"
+                  placeholder="Permit number"
                   className="w-48 sm:w-60 pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-mono text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#006398] focus:ring-1 focus:ring-[#006398]/30 shadow-xs"
                 />
               </div>
@@ -999,22 +1037,12 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                 ) : (
                   <span className="material-symbols-outlined text-[15px]">visibility</span>
                 )}
-                <span className="hidden sm:inline">Jump</span>
+                <span className="hidden sm:inline">Open</span>
               </button>
             </form>
 
-            {viewMode === 'detail' && (
-              <button
-                type="button"
-                onClick={handlePrint}
-                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold transition-all shadow-xs flex items-center gap-1 shrink-0"
-                title="Print Official Certificate"
-              >
-                <span className="material-symbols-outlined text-[15px]">print</span>
-                <span className="hidden sm:inline">Print PTW</span>
-              </button>
-            )}
-          </div>
+
+          </div>}
         </div>
       </header>
 
@@ -1200,77 +1228,24 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
 
           {/* Unified Filter & Search Strip */}
           <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs space-y-3">
-            {/* Top Row: Search Controls */}
-            <div className="flex flex-col md:flex-row md:items-center gap-3">
-              {/* Instant In-Table Quick Filter */}
-              <div className="flex-1 relative">
-                <span className="material-symbols-outlined absolute left-3 top-2.5 text-[18px] text-slate-400">
-                  filter_list
-                </span>
-                <input
-                  type="text"
-                  value={tableQuery}
-                  onChange={e => setTableQuery(e.target.value)}
-                  placeholder="Instant filter by Permit #, MO #, Equipment, Area, Job Description, or Contractor..."
-                  className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-[#006398] focus:ring-1 focus:ring-[#006398]/30 transition-all"
-                />
-                {tableQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setTableQuery('')}
-                    className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">close</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Server-Side Controls */}
-              <form
-                onSubmit={e => {
-                  e.preventDefault();
-                  void loadPermitList(0);
-                  if (plant !== lastBaselinePlantRef.current || !plantSummary) {
-                    void loadPlantSummary(plant);
-                  }
-                }}
-                className="flex items-center gap-2 shrink-0 flex-wrap"
-              >
-                <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
-                  <span className="text-[11px] font-mono text-slate-400">Plant:</span>
-                  <input
-                    type="text"
-                    value={plant}
-                    maxLength={4}
-                    onChange={e => setPlant(e.target.value.toUpperCase())}
-                    placeholder="1002"
-                    className="w-14 bg-transparent font-mono font-bold text-xs text-slate-800 focus:outline-none"
-                  />
-                </div>
-
-                <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
-                  <span className="text-[11px] font-mono text-slate-400">SAP Query:</span>
-                  <input
-                    type="text"
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    placeholder="Server query..."
-                    className="w-32 bg-transparent text-xs text-slate-800 focus:outline-none placeholder:text-slate-400"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-3.5 py-2 bg-[#006398] hover:bg-[#004e78] text-white rounded-xl text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  <span className={`material-symbols-outlined text-[15px] ${loading ? 'animate-spin' : ''}`}>
-                    {loading ? 'progress_activity' : 'sync'}
-                  </span>
-                  <span>Fetch SAP</span>
-                </button>
-              </form>
-            </div>
+            <form onSubmit={e => { e.preventDefault(); void loadPermitList(0); if (plant !== lastBaselinePlantRef.current || !plantSummary) void loadPlantSummary(plant); }} className="flex flex-wrap items-end gap-3">
+              <label className="min-w-48 flex-1 text-sm font-semibold text-slate-700">
+                Search permits
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Permit number, job, equipment or location" className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-sky-600" />
+              </label>
+              <label className="text-sm font-semibold text-slate-700">
+                Plant
+                <input value={plant} maxLength={4} onChange={e => setPlant(e.target.value.toUpperCase())} className="mt-1 block w-20 rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-600" />
+              </label>
+              <button type="submit" disabled={loading} className="min-h-11 rounded-lg bg-[#006398] px-5 text-sm font-semibold text-white hover:bg-[#004e78] disabled:opacity-50">{loading ? 'Searching…' : 'Search'}</button>
+            </form>
+            <details className="text-sm text-slate-600">
+              <summary className="cursor-pointer">Filter the current page{tableQuery ? ' · Filter applied' : ''}</summary>
+              <label className="mt-2 block">
+                Find within the loaded results only
+                <input value={tableQuery} onChange={e => setTableQuery(e.target.value)} type="search" placeholder="Permit, job, location or contractor" className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-600" />
+              </label>
+            </details>
 
             {/* Bottom Row: Category & Status Filter Pills */}
             <div className="pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2.5 text-xs">
@@ -1460,16 +1435,16 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
+                <table className="w-full text-left text-sm border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50/80 text-slate-600 font-mono text-[11px] sticky top-0 z-10">
                       <th className="py-3 px-3.5 w-12 text-center">#</th>
                       <th className="py-3 px-3.5 w-40">Permit Number</th>
                       <th className="py-3 px-3.5 w-32">Type</th>
                       <th className="py-3 px-3.5 w-36">Status</th>
-                      <th className="py-3 px-3.5 w-60">Workflow &amp; Clearance Levels</th>
-                      <th className="py-3 px-3.5">Job Scope &amp; Technical Reference</th>
-                      <th className="py-3 px-3.5 w-44">Location &amp; Plant</th>
+                      <th className="py-3 px-3.5 w-60">Next clearance</th>
+                      <th className="py-3 px-3.5">Work scope</th>
+                      <th className="py-3 px-3.5 w-44">Location</th>
                       <th className="py-3 px-3.5 w-48">Validity Window (IST)</th>
                       <th className="py-3 px-3.5 w-32 text-right">Action</th>
                     </tr>
@@ -1546,7 +1521,7 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                               {(() => {
                                 const cl = getPermitClearanceLevels(item);
                                 return (
-                                  <div className="space-y-1.5 min-w-[210px]">
+                                  <div className="space-y-1.5 min-w-[140px]">
                                     {/* Overall active stage badge */}
                                     <div className="flex items-center gap-1.5 flex-wrap">
                                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border shadow-2xs ${cl.overallLevelBadgeClass}`}>
@@ -1569,36 +1544,7 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                                       </span>
                                     </div>
 
-                                    {/* 4-Step Micro Clearance Strip */}
-                                    <div className="grid grid-cols-4 gap-1 text-center font-mono">
-                                      <span
-                                        className={`px-1 py-0.5 rounded text-[9px] font-bold border truncate transition-all cursor-help ${cl.gas.badgeClass}`}
-                                        title={`Level 1: Gas Testing\nStatus: ${cl.gas.status}\nDetails: ${cl.gas.detailText}`}
-                                      >
-                                        {cl.gas.status === 'DONE' ? '✓ Gas' : cl.gas.status === 'NOT_REQUIRED' ? '— Gas' : '⚠ Gas'}
-                                      </span>
 
-                                      <span
-                                        className={`px-1 py-0.5 rounded text-[9px] font-bold border truncate transition-all cursor-help ${cl.approver.badgeClass}`}
-                                        title={`Level 2: Managerial Approver\nStatus: ${cl.approver.status}\nDetails: ${cl.approver.detailText}`}
-                                      >
-                                        {cl.approver.status === 'APPROVED' ? '✓ Appr' : cl.approver.status === 'REJECTED' ? '✕ Appr' : '● Appr'}
-                                      </span>
-
-                                      <span
-                                        className={`px-1 py-0.5 rounded text-[9px] font-bold border truncate transition-all cursor-help ${cl.accepter.badgeClass}`}
-                                        title={`Level 3: Permit Acceptor (Section K)\nStatus: ${cl.accepter.status}\nDetails: ${cl.accepter.detailText}`}
-                                      >
-                                        {cl.accepter.status === 'ACCEPTED' ? '✓ Accp' : cl.accepter.status === 'PENDING' ? '● Accp' : '— Accp'}
-                                      </span>
-
-                                      <span
-                                        className={`px-1 py-0.5 rounded text-[9px] font-bold border truncate transition-all cursor-help ${cl.areaOperator.badgeClass}`}
-                                        title={`Level 4: Area Operator Clearance\nStatus: ${cl.areaOperator.status}\nDetails: ${cl.areaOperator.detailText}`}
-                                      >
-                                        {cl.areaOperator.status === 'CLEARED' ? '✓ Area' : cl.areaOperator.status === 'PENDING' ? '● Area' : '— Area'}
-                                      </span>
-                                    </div>
                                   </div>
                                 );
                               })()}
@@ -1606,7 +1552,7 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
 
                             {/* Job Description & Reference Badges */}
                             <td className="py-3 px-3.5 max-w-sm">
-                              <p className="font-semibold text-slate-900 line-clamp-1 text-xs" title={item.JobDesc}>
+                              <p className="font-semibold text-slate-900 line-clamp-2 text-sm" title={item.JobDesc}>
                                 {item.JobDesc || 'No job description provided'}
                               </p>
                               <div className="flex items-center gap-1.5 mt-1 text-[10px] font-mono text-slate-500 flex-wrap">
@@ -1644,9 +1590,9 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                             {/* Validity Window */}
                             <td className="py-3 px-3.5 whitespace-nowrap">
                               <div className="text-[11px] font-mono text-slate-700 flex items-center gap-1">
-                                <span>{item.ValidFromD?.slice(5)} {item.ValidFromT?.slice(0, 5)}</span>
+                                <span>{item.ValidFromD} {item.ValidFromT?.slice(0, 5)}</span>
                                 <span className="text-slate-300">→</span>
-                                <span>{item.ValidToD?.slice(5)} {item.ValidToT?.slice(0, 5)}</span>
+                                <span>{item.ValidToD} {item.ValidToT?.slice(0, 5)}</span>
                               </div>
                               <div className="flex items-center gap-1.5 mt-1">
                                 <div className="w-16 bg-slate-200 h-1 rounded-full overflow-hidden shrink-0">
@@ -1678,6 +1624,8 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                           {isExpanded && (
                             <tr className="bg-sky-50/20 border-b border-sky-100">
                               <td colSpan={9} className="p-4 pl-12">
+                                {loadingPreviewHistory && <p role="status" className="mb-2 text-sm text-slate-600">Loading approval history…</p>}
+                                {previewHistoryError && <p role="alert" className="mb-2 text-sm text-amber-800">{previewHistoryError}</p>}
                                 {(() => {
                                   const cl = getPermitClearanceLevels(item);
                                   return (
@@ -1737,7 +1685,7 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                                               <div className="font-bold text-xs truncate">
                                                 {lvl.badgeLabel}
                                               </div>
-                                              <p className="text-[10px] text-slate-500 leading-tight mt-1 line-clamp-2" title={lvl.detailText}>
+                                              <p className={`text-sm leading-relaxed mt-1 whitespace-pre-wrap break-words ${lvl.isRejected ? 'text-rose-800' : 'text-slate-600'}`}>
                                                 {lvl.detailText}
                                               </p>
                                               <div className="text-[9px] font-mono text-slate-400 mt-1 pt-1 border-t border-slate-200/60">
@@ -1804,7 +1752,7 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                                       className="px-3.5 py-1.5 bg-[#006398] hover:bg-[#004e78] text-white rounded-lg font-semibold text-xs transition-all shadow-xs flex items-center gap-1.5"
                                     >
                                       <span className="material-symbols-outlined text-[15px]">description</span>
-                                      <span>Display All 8 Dossier Tabs</span>
+                                      <span>View permit details</span>
                                     </button>
                                   </div>
                                 </div>
@@ -2025,14 +1973,14 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                     )}
                   </div>
 
-                  <p className="mt-1 text-xs sm:text-sm font-medium text-slate-700 max-w-4xl line-clamp-2">
+                  <p className="mt-1 text-sm font-medium text-slate-700 max-w-4xl leading-relaxed">
                     {selectedPermit.JobDesc}
                   </p>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="no-print flex items-center gap-2 shrink-0 self-start lg:self-center">
+              <div className="no-print flex flex-wrap items-center gap-2 self-start lg:self-center">
                 {(selectedPermit.Status === 'REJT' || selectedPermit.Status === 'REJC') && (
                   <div className="flex items-center gap-1.5">
                     {onRevisePermit && (
@@ -2071,7 +2019,7 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                   className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5"
                 >
                   <span className="material-symbols-outlined text-[15px]">print</span>
-                  <span>Print Dossier</span>
+                  <span>Print permit</span>
                 </button>
 
                 <button
@@ -2083,125 +2031,12 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                   <span className={`material-symbols-outlined text-[15px] ${loadingDetail ? 'animate-spin' : ''}`}>
                     refresh
                   </span>
-                  <span>Reload SAP</span>
+                  <span>Refresh</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setViewMode('list')}
-                  className="px-3 py-1.5 border border-slate-200 hover:bg-slate-100 text-slate-600 rounded-xl text-xs font-semibold transition-all flex items-center gap-1"
-                  title="Return to Master Table"
-                >
-                  <span className="material-symbols-outlined text-[15px]">view_list</span>
-                  <span className="hidden sm:inline">Register</span>
-                </button>
+
               </div>
             </div>
-
-            {/* 4-Level Safety & Authorization Clearance Pipeline Banner in Detailed Dossier */}
-            {(() => {
-              const dossierClearance = getPermitClearanceLevels(selectedPermit);
-              return (
-                <div className="mt-3.5 p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <span className="p-1.5 rounded-lg bg-[#006398]/10 text-[#006398]">
-                        <span className="material-symbols-outlined text-[20px]">alt_route</span>
-                      </span>
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800">
-                            4-Level Safety &amp; Authorization Clearance Pipeline
-                          </h3>
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border ${dossierClearance.overallLevelBadgeClass}`}>
-                            {dossierClearance.overallLevelLabel}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          Current Required Action: <strong className="text-slate-800 font-semibold">{dossierClearance.nextActionText}</strong>
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-[11px] font-mono text-slate-500">
-                        Clearance Progress: <strong className="text-slate-900">{dossierClearance.completedCount} of {dossierClearance.totalApplicableLevels}</strong>
-                      </span>
-                      <div className="w-24 bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-200">
-                        <div
-                          className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full transition-all"
-                          style={{ width: `${Math.round((dossierClearance.completedCount / dossierClearance.totalApplicableLevels) * 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    {dossierClearance.levels.map(lvl => {
-                      const targetTab =
-                        lvl.id === 'gas'
-                          ? 'gastest'
-                          : lvl.id === 'approver' || lvl.id === 'accepter' || lvl.id === 'area_operator'
-                          ? 'approvals'
-                          : 'overview';
-
-                      return (
-                        <div
-                          key={lvl.id}
-                          onClick={() => setActiveTab(targetTab as any)}
-                          className={`p-3 rounded-xl border flex flex-col justify-between transition-all cursor-pointer hover:shadow-xs ${
-                            lvl.isComplete && !lvl.isNotApplicable
-                              ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950 hover:bg-emerald-50'
-                              : lvl.isPendingCurrent
-                              ? 'bg-amber-50/80 border-amber-300 text-amber-950 ring-2 ring-amber-400/20 shadow-xs'
-                              : lvl.isRejected
-                              ? 'bg-rose-50/70 border-rose-200 text-rose-950'
-                              : lvl.isNotApplicable
-                              ? 'bg-slate-50 border-slate-200 text-slate-500'
-                              : 'bg-white border-slate-200/80 text-slate-600 hover:bg-slate-50'
-                          }`}
-                        >
-                          <div>
-                            <div className="flex items-center justify-between mb-1.5">
-                              <span className="text-[10px] font-mono uppercase tracking-wider font-bold opacity-75">
-                                Level {lvl.stepNumber}: {lvl.shortLabel}
-                              </span>
-                              <span className={`material-symbols-outlined text-[18px] ${
-                                lvl.isComplete && !lvl.isNotApplicable
-                                  ? 'text-emerald-600'
-                                  : lvl.isPendingCurrent
-                                  ? 'text-amber-600 animate-pulse'
-                                  : lvl.isRejected
-                                  ? 'text-rose-600'
-                                  : 'text-slate-400'
-                              }`}>
-                                {lvl.icon}
-                              </span>
-                            </div>
-
-                            <div className="font-bold text-xs">
-                              {lvl.badgeLabel}
-                            </div>
-
-                            <p className="text-[11px] opacity-80 leading-relaxed mt-1 line-clamp-2" title={lvl.detailText}>
-                              {lvl.detailText}
-                            </p>
-                          </div>
-
-                          <div className="mt-2.5 pt-2 border-t border-current/10 flex items-center justify-between text-[10px] font-mono opacity-80">
-                            <span>Role: <strong>{lvl.responsibleRole}</strong></span>
-                            <span className="flex items-center gap-0.5 text-[#006398] font-bold">
-                              <span>Inspect</span>
-                              <span className="material-symbols-outlined text-[11px]">arrow_forward</span>
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })()}
 
             {/* At-a-Glance 4-Card Operational Summary Grid */}
             <div className="mt-3.5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -2268,8 +2103,8 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
               {/* 3. Validity Window (IST) */}
               <div className="bg-white p-3 rounded-xl border border-slate-200/90 shadow-xs flex flex-col justify-between">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
-                    Validity Window (IST)
+                  <span className="text-xs uppercase tracking-wide text-slate-600 font-semibold">
+                    Validity (IST)
                   </span>
                   <span className="material-symbols-outlined text-[16px] text-slate-400">schedule</span>
                 </div>
@@ -2278,9 +2113,9 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                   return (
                     <div className="text-xs space-y-1">
                       <div className="font-mono text-[11px] text-slate-700 font-semibold">
-                        <span>{selectedPermit.ValidFromD?.slice(5)} {selectedPermit.ValidFromT?.slice(0, 5)}</span>
+                        <span>{selectedPermit.ValidFromD} {selectedPermit.ValidFromT?.slice(0, 5)}</span>
                         <span className="text-slate-300 mx-1">→</span>
-                        <span>{selectedPermit.ValidToD?.slice(5)} {selectedPermit.ValidToT?.slice(0, 5)}</span>
+                        <span>{selectedPermit.ValidToD} {selectedPermit.ValidToT?.slice(0, 5)}</span>
                       </div>
                       <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                         <div
@@ -2331,6 +2166,115 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
               </div>
             </div>
 
+            {/* 4-Level Safety & Authorization Clearance Pipeline Banner in Detailed Dossier */}
+            {(() => {
+              const dossierClearance = getPermitClearanceLevels(selectedPermit);
+              return (
+                <div className="mt-3.5 p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <span className="p-1.5 rounded-lg bg-[#006398]/10 text-[#006398]">
+                        <span className="material-symbols-outlined text-[20px]">alt_route</span>
+                      </span>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-bold text-xs uppercase tracking-wider text-slate-800">
+                            Safety clearances
+                          </h3>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border ${dossierClearance.overallLevelBadgeClass}`}>
+                            {dossierClearance.overallLevelLabel}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Next required action: <strong className="text-slate-800 font-semibold">{dossierClearance.nextActionText}</strong>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[11px] font-mono text-slate-500">
+                        Clearance Progress: <strong className="text-slate-900">{dossierClearance.completedCount} of {dossierClearance.totalApplicableLevels}</strong>
+                      </span>
+                      <div className="w-24 bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-200">
+                        <div
+                          className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full transition-all"
+                          style={{ width: `${Math.round((dossierClearance.completedCount / dossierClearance.totalApplicableLevels) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <details className="mt-3"><summary className="cursor-pointer text-sm font-semibold text-[#006398]">View clearance details</summary>
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {dossierClearance.levels.map(lvl => {
+                      const targetTab =
+                        lvl.id === 'gas'
+                          ? 'gastest'
+                          : lvl.id === 'approver' || lvl.id === 'accepter' || lvl.id === 'area_operator'
+                          ? 'approvals'
+                          : 'overview';
+
+                      return (
+                        <div
+                          key={lvl.id}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setActiveTab(targetTab as TabType); } }}
+                          onClick={() => setActiveTab(targetTab as any)}
+                          className={`p-3 rounded-xl border flex flex-col justify-between transition-all cursor-pointer hover:shadow-xs ${
+                            lvl.isComplete && !lvl.isNotApplicable
+                              ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950 hover:bg-emerald-50'
+                              : lvl.isPendingCurrent
+                              ? 'bg-amber-50/80 border-amber-300 text-amber-950 ring-2 ring-amber-400/20 shadow-xs'
+                              : lvl.isRejected
+                              ? 'bg-rose-50/70 border-rose-200 text-rose-950'
+                              : lvl.isNotApplicable
+                              ? 'bg-slate-50 border-slate-200 text-slate-500'
+                              : 'bg-white border-slate-200/80 text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="text-[10px] font-mono uppercase tracking-wider font-bold opacity-75">
+                                Level {lvl.stepNumber}: {lvl.shortLabel}
+                              </span>
+                              <span className={`material-symbols-outlined text-[18px] ${
+                                lvl.isComplete && !lvl.isNotApplicable
+                                  ? 'text-emerald-600'
+                                  : lvl.isPendingCurrent
+                                  ? 'text-amber-600 animate-pulse'
+                                  : lvl.isRejected
+                                  ? 'text-rose-600'
+                                  : 'text-slate-400'
+                              }`}>
+                                {lvl.icon}
+                              </span>
+                            </div>
+
+                            <div className="font-bold text-xs">
+                              {lvl.badgeLabel}
+                            </div>
+
+                            <p className={`text-sm leading-relaxed mt-1 whitespace-pre-wrap break-words ${lvl.isRejected ? 'text-rose-800' : 'text-slate-600'}`}>
+                              {lvl.detailText}
+                            </p>
+                          </div>
+
+                          <div className="mt-2.5 pt-2 border-t border-current/10 flex items-center justify-between text-[10px] font-mono opacity-80">
+                            <span>Role: <strong>{lvl.responsibleRole}</strong></span>
+                            <span className="flex items-center gap-0.5 text-[#006398] font-bold">
+                              <span>Inspect</span>
+                              <span className="material-symbols-outlined text-[11px]">arrow_forward</span>
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div></details>
+                </div>
+              );
+            })()}
+
             {/* Embedded Prerequisite Actions Panel for eligible roles */}
             {(isUserAdmin || userRoles.some(r => ['ZPTW_GAS_TESTER', 'PTW_GAS_TESTER', 'ZPTW_SAFETY_OFFICER', 'PTW_SAFETY_OFFICER', 'PTW_SAFE', 'ZPTW_ADMIN', 'PTW_ADMIN'].includes(r))) && (
               <div className="mt-3 pt-3 border-t border-slate-200/60">
@@ -2355,55 +2299,56 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
             {/* Tabs List */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-thin">
               {[
-                { id: 'overview', label: '1. Plant & General', icon: 'factory', badge: null },
+                { id: 'overview', label: 'Overview', icon: 'factory', badge: null },
                 {
                   id: 'procedure',
-                  label: '2. Checklists (C–F)',
+                  label: 'Checklists',
                   icon: 'fact_check',
                   badge: (selectedPermit._Safety?.length || 0) + (selectedPermit._CHK?.length || 0),
                   hasWarning: selectedPermit._Safety?.some(s => s.Response === 'NO')
                 },
                 {
                   id: 'crew_hazards',
-                  label: '3. Crew & Hazards (E)',
+                  label: 'Crew & hazards',
                   icon: 'group',
                   badge: `${selectedPermit._Worker?.length || 0} / ${selectedPermit._HazardControl?.length || 0}`
                 },
                 {
                   id: 'ppe',
-                  label: '4. PPE Gear (G)',
+                  label: 'PPE',
                   icon: 'health_and_safety',
                   badge: selectedPermit._PPE?.length
                 },
                 {
                   id: 'isolation',
-                  label: '5. Isolation (H)',
+                  label: 'Isolation',
                   icon: 'lock',
                   badge: selectedPermit._Isolation?.reduce((acc, c) => acc + (c._Item?.length || 0), 0) || (selectedPermit.IsolationRequired === 'Y' || selectedPermit.IsolationRequired === 'X' ? 'REQ' : null)
                 },
                 {
                   id: 'gastest',
-                  label: '6. Gas Tests (I)',
+                  label: 'Gas tests',
                   icon: 'science',
                   badge: selectedPermit._GasTest?.length || ((selectedPermit.GasTestRequired === 'Y' || selectedPermit.GasTestRequired === 'X') ? 'REQ' : null)
                 },
                 {
                   id: 'approvals',
-                  label: '7. Signatures (J–M)',
+                  label: 'Approvals',
                   icon: 'draw',
                   badge: selectedPermit._Approval?.length
                 },
                 {
                   id: 'renewals_audit',
-                  label: '8. Renewals & Audit (N)',
+                  label: 'History',
                   icon: 'history',
                   badge: selectedPermit._AuditLog?.length
                 },
               ].map(tab => (
                 <button
                   key={tab.id}
+                  aria-current={activeTab === tab.id ? 'page' : undefined}
                   type="button"
-                  onClick={() => setActiveTab(tab.id as TabType)}
+                  onClick={() => { setActiveTab(tab.id as TabType); document.getElementById('permit-section-content')?.scrollIntoView({ block: 'start' }); }}
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 ${
                     activeTab === tab.id
                       ? 'bg-[#006398] text-white shadow-xs'
@@ -2427,8 +2372,8 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
               ))}
             </div>
 
-            {/* In-Dossier Quick Search Filter */}
-            <div className="relative shrink-0">
+            {/* JHA activity filter */}
+            {activeTab === 'crew_hazards' && <div className="relative shrink-0">
               <span className="material-symbols-outlined absolute left-2.5 top-2 text-[15px] text-slate-400">
                 search
               </span>
@@ -2436,7 +2381,8 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                 type="text"
                 value={dossierSearch}
                 onChange={e => setDossierSearch(e.target.value)}
-                placeholder="Search active tab..."
+                aria-label="Filter JHA activities"
+                placeholder="Filter JHA activities…"
                 className="w-full sm:w-44 pl-7 pr-7 py-1 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-[#006398]"
               />
               {dossierSearch && (
@@ -2448,12 +2394,13 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                   <span className="material-symbols-outlined text-[14px]">close</span>
                 </button>
               )}
-            </div>
+            </div>}
           </div>
 
           {/* ========================================================================= */}
           {/* TAB 1: OVERVIEW & PLANT CONTEXT */}
           {/* ========================================================================= */}
+          <div id="permit-section-content" className="scroll-mt-44" />
           {activeTab === 'overview' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Plant & Equipment Context */}
@@ -2492,7 +2439,7 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                   </div>
                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
                     <div className="flex items-center justify-between">
-                      <dt className="text-slate-400 font-mono text-[10px]">Functional Location (Tplnr)</dt>
+                      <dt className="text-slate-400 font-mono text-[10px]">Functional location</dt>
                       {selectedPermit.Tplnr && (
                         <button
                           type="button"
@@ -2647,7 +2594,7 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                 theme="emerald"
                 sectionTag="SECTION C–F"
                 title="Safety Preparations, JSA & Statutory Checks"
-                subtitle={`Standard Operating Procedure ${PROCEDURE.id} · Entity: _Safety`}
+                subtitle={`Standard Operating Procedure ${PROCEDURE.id}`}
                 icon="fact_check"
                 badge={
                   <span className="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
@@ -3435,7 +3382,7 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
               theme="emerald"
               sectionTag="SECTION G"
               title="Personal Protective Equipment (PPE) Checklist"
-              subtitle="Entity: _PPE · Safety gear and respiratory compliance."
+              subtitle="Required protective equipment and respiratory protection."
               icon="health_and_safety"
               badge={
                 <span className="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
@@ -3597,7 +3544,7 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
             <SectionCard
               theme="amber"
               sectionTag="SECTION I"
-              title="Atmospheric Gas Testing Register (Entity: GasTest)"
+              title="Gas test records"
               subtitle={`Retest Interval: ${selectedPermit.GasTestFreqHr || 2} Hours · Gas Test Required: ${(selectedPermit.GasTestRequired === 'Y' || selectedPermit.GasTestRequired === 'X') ? 'YES (X)' : 'NO'}`}
               icon="science"
               badge={
@@ -3703,8 +3650,8 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
             <SectionCard
               theme="blue"
               sectionTag="SECTION J–M"
-              title="Digital Approvals, Clearances & Signatures Chain"
-              subtitle="SAP Entity: /Approval (_Approval) · Multi-tier role authorization sequence."
+              title="Approvals and clearances"
+              subtitle="Required approvals, clearances and recorded signatures."
               icon="draw"
               badge={
                 <div className="flex items-center gap-2">
@@ -3717,40 +3664,7 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                         <span className="material-symbols-outlined text-[15px] text-emerald-600">verified</span>
                         <span>Approvals Completed</span>
                       </span>
-                      {selectedPermit.Status === 'APPR' && (
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            disabled={!hasAcceptorRole}
-                            onClick={() => handleOpenAcceptorModal('accept')}
-                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-teal-600 text-white text-xs font-bold shadow-xs hover:bg-teal-700 transition active:scale-[0.98] disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                            title={
-                              hasAcceptorRole
-                                ? 'Accept Permit as Permit Acceptor (.acceptPermit)'
-                                : `Permit Acceptor role (PTW_ACCP) required in SAP /UserRole. Current roles: ${userDisplayRoles.join(', ') || 'None'}`
-                            }
-                          >
-                            <span className="material-symbols-outlined text-[14px]">
-                              {hasAcceptorRole ? 'task_alt' : 'lock'}
-                            </span>
-                            <span>{hasAcceptorRole ? 'Accept Permit' : 'Acceptor Role Req'}</span>
-                          </button>
-                          <button
-                            type="button"
-                            disabled={!hasAcceptorRole}
-                            onClick={() => handleOpenAcceptorModal('reject')}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white text-rose-700 border border-rose-200 text-xs font-bold hover:bg-rose-50 transition active:scale-[0.98] disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                            title={
-                              hasAcceptorRole
-                                ? 'Reject Permit as Permit Acceptor (.rejectAcceptor)'
-                                : 'Permit Acceptor role required to reject'
-                            }
-                          >
-                            <span className="material-symbols-outlined text-[14px]">cancel</span>
-                            <span>Reject (Acceptor)</span>
-                          </button>
-                        </div>
-                      )}
+
                     </div>
                   ) : (
                     <button
@@ -4125,7 +4039,7 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                         Section K: Permit Acceptor Agreement &amp; Clearance
                       </h4>
                       <p className="text-[11px] text-slate-500">
-                        Responsible Person: <strong className="text-slate-800 font-mono">{selectedPermit.PersonResp || selectedPermit.SupvName || 'Acceptor'}</strong> · SAP Bound Actions: <code className="font-mono text-teal-700">.acceptPermit</code> / <code className="font-mono text-rose-700">.rejectAcceptor</code>
+                        Responsible Person: <strong className="text-slate-800 font-mono">{selectedPermit.PersonResp || selectedPermit.SupvName || 'Acceptor'}</strong>
                       </p>
                     </div>
                   </div>
@@ -4199,7 +4113,7 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                         </span>
                         <div>
                           <h3 className="font-bold text-sm text-slate-900">Sign Clearance / Approval</h3>
-                          <p className="text-[11px] font-mono text-slate-500">SAP Entity: /Approval · Permit {selectedPermit.Permit_No}</p>
+                          <p className="text-[11px] font-mono text-slate-500">Permit {selectedPermit.Permit_No}</p>
                         </div>
                       </div>
                       <button
@@ -4309,7 +4223,8 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                         <label className="font-bold text-slate-700 block mb-1">Signed By (SAP User ID):</label>
                         <input
                           type="text"
-                          defaultValue={user?.id || user?.fullName || 'VERTIF-V'}
+                          value={user?.id || ''}
+                          readOnly
                           id="approval-signed-by"
                           className="w-full p-2 rounded-xl border border-slate-200 font-mono font-bold"
                         />
@@ -4339,8 +4254,7 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                         type="button"
                         disabled={submittingApproval || !hasApproverRole}
                         onClick={() => {
-                          const signedInput = (document.getElementById('approval-signed-by') as HTMLInputElement)?.value;
-                          void handleSubmitApproval(signedInput);
+                          void handleSubmitApproval();
                         }}
                         className="px-4 py-2 rounded-xl bg-[#006398] text-white font-bold text-xs hover:bg-[#004e78] transition disabled:opacity-50 flex items-center gap-1.5 shadow-xs cursor-pointer disabled:cursor-not-allowed"
                         title={!hasApproverRole ? 'Approver authorization required' : 'Submit to SAP /Approval'}
@@ -4383,7 +4297,7 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                             {acceptorActionType === 'accept' ? 'Accept Permit (Permit Acceptor)' : 'Reject Permit (Acceptor)'}
                           </h3>
                           <p className="text-[11px] font-mono text-slate-500">
-                            SAP Action: {acceptorActionType === 'accept' ? '.acceptPermit' : '.rejectAcceptor'} · Permit {selectedPermit.Permit_No}
+                            {acceptorActionType === 'accept' ? 'Accept' : 'Reject'} permit {selectedPermit.Permit_No}
                           </p>
                         </div>
                       </div>
@@ -4502,6 +4416,10 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                   </div>
                 </div>
               )}
+            </SectionCard>
+          )}
+
+          {/* ========================================================================= */}
               {/* Resubmit & Revise Rejected Permit Modal (SAP Bound Action: PermitInfo('...')/...Resubmit) */}
               {showResubmitModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
@@ -4514,7 +4432,7 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                         <div>
                           <h3 className="font-bold text-sm text-slate-900">Revise & Resubmit Permit for Approval</h3>
                           <p className="text-[11px] font-mono text-slate-500">
-                            SAP Bound Action: PermitInfo('{selectedPermit.Permit_No}')/Resubmit
+                            Permit {selectedPermit.Permit_No}
                           </p>
                         </div>
                       </div>
@@ -4742,10 +4660,7 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
                   </div>
                 </div>
               )}
-            </SectionCard>
-          )}
 
-          {/* ========================================================================= */}
           {/* TAB 8: SHIFT RENEWALS & AUDIT LOG (N) */}
           {/* ========================================================================= */}
           {activeTab === 'renewals_audit' && (
@@ -4754,7 +4669,7 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
               <SectionCard
                 theme="indigo"
                 sectionTag="SECTION N.1"
-                title="Shift Revalidations & Renewals (_ShiftRenewal)"
+                title="Shift renewals"
                 subtitle="Formal shift handover and validity extension records."
                 icon="update"
                 badge={
@@ -4801,8 +4716,8 @@ export const PermitDisplayWorkspace: React.FC<PermitDisplayWorkspaceProps> = ({
               <SectionCard
                 theme="slate"
                 sectionTag="SECTION N.2"
-                title="Lifecycle Event Audit Trail (AuditLog)"
-                subtitle="Live chronological timeline directly from SAP S/4HANA AuditLog entity set."
+                title="Permit history"
+                subtitle="Recorded permit changes, in chronological order."
                 icon="history"
                 badge={
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">

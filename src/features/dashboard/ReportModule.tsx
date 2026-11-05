@@ -140,7 +140,7 @@ export const ReportModule: React.FC<ReportModuleProps> = ({
       // Enrich with locally created permits cache for instant discovery of _WorkType and additional categories
       let enrichedPermits: any[] = [...(permitRes || [])];
       try {
-        if (typeof window !== 'undefined' && window.localStorage) {
+        if (import.meta.env.DEV && typeof window !== 'undefined' && window.localStorage) {
           const localPermits: any[] = JSON.parse(window.localStorage.getItem('ptw_recent_created_permits') || '[]');
           if (Array.isArray(localPermits) && localPermits.length > 0) {
             localPermits.forEach((lp) => {

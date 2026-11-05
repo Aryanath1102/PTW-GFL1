@@ -1,3 +1,7 @@
+function requireTester(value?: string): string {
+  if (!value?.trim()) throw new Error('A verified SAP tester is required before saving a gas test.');
+  return value.trim();
+}
 import odataClient from '../odataClient';
 import { ODATA_ENTITIES } from '../odataEndpoints';
 import { GasTestRecord, PermitGasTest, PermitInfoRecord } from '../../types/ptw.types';
@@ -423,7 +427,7 @@ class GasTesterApiService {
       TestTime: formatTime(record.TestTime),
       TestLocation: record.TestLocation?.trim() || '',
       SampleLevel: record.SampleLevel?.trim() || 'MID',
-      TestedBy: (record.TestedBy || 'VERTIF-V').trim(),
+      TestedBy: requireTester(record.TestedBy),
       Cert: record.Cert?.trim() || '',
       MeterType: record.MeterType?.trim() || 'GAS_DETECTOR',
       MeterId: record.MeterId?.trim() || '',
@@ -558,7 +562,7 @@ class GasTesterApiService {
     }
 
     // 2. Merge recent permits cached in localStorage (e.g. newly created during active session)
-    if (typeof window !== 'undefined' && window.localStorage) {
+    if (import.meta.env.DEV && typeof window !== 'undefined' && window.localStorage) {
       try {
         const cached = JSON.parse(window.localStorage.getItem('ptw_recent_created_permits') || '[]');
         if (Array.isArray(cached)) {

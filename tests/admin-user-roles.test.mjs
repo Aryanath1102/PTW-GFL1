@@ -104,7 +104,7 @@ test('Live SAP /UserRole response payload conforms to SapUserRoleRecord schema',
       {
         "SAP_USER": "VERTIF-V",
         "PTW_ROLE": "PTW_ADMIN",
-        "ACTIVE": true,
+        "ACTIVE": "X",
         "CREATED_BY": "",
         "CREATED_ON": null,
         "CREATED_AT": "::",
@@ -125,8 +125,8 @@ test('Live SAP /UserRole response payload conforms to SapUserRoleRecord schema',
   assert.equal(typeof record.PTW_ROLE, 'string');
   assert.equal(record.PTW_ROLE, 'PTW_ADMIN');
 
-  assert.equal(typeof record.ACTIVE, 'boolean');
-  assert.equal(record.ACTIVE, true);
+  assert.equal(typeof record.ACTIVE, 'string');
+  assert.equal(record.ACTIVE, 'X');
 
   assert.ok('CREATED_BY' in record);
   assert.ok('CREATED_ON' in record);
@@ -163,8 +163,8 @@ test('Role normalization handles PTW_* and ZPTW_* prefixes bidirectionally', () 
   assert.ok(normalizedFromZptw.includes('ZPTW_ADMIN'));
 
   // Case 3: Multiple roles
-  const multiple = normalizeRoles(['PTW_REQUESTER', 'PTW_APPROVER', 'ZPTW_ISSUER']);
-  assert.ok(multiple.includes('PTW_REQUESTER') && multiple.includes('ZPTW_REQUESTER'));
+  const multiple = normalizeRoles(['PTW_ISSU', 'PTW_APPROVER', 'ZPTW_ISSUER']);
+  assert.ok(multiple.includes('PTW_ISSU') && multiple.includes('ZPTW_ISSU'));
   assert.ok(multiple.includes('PTW_APPROVER') && multiple.includes('ZPTW_APPROVER'));
   assert.ok(multiple.includes('PTW_ISSUER') && multiple.includes('ZPTW_ISSUER'));
 });
@@ -202,10 +202,10 @@ test('User with PTW_ADMIN or ZPTW_ADMIN unlocks all modules across the applicati
   const zptwAdminUnlocked = computeUnlocked(['ZPTW_ADMIN']);
   assert.equal(zptwAdminUnlocked.length, MODULE_REGISTRY.length);
 
-  // Non-admin with just requester only unlocks requester modules
-  const requesterUnlocked = computeUnlocked(['PTW_REQUESTER']);
-  assert.ok(!requesterUnlocked.includes('admin'), 'Requester must NOT unlock admin');
-  assert.ok(requesterUnlocked.includes('permit-create'), 'Requester unlocks permit-create');
+  // Non-admin with just issuer only unlocks issuer modules
+  const issuerUnlocked = computeUnlocked(['PTW_ISSU']);
+  assert.ok(!issuerUnlocked.includes('admin'), 'Issuer must NOT unlock admin');
+  assert.ok(issuerUnlocked.includes('permit-create'), 'Issuer unlocks permit-create');
 });
 
 test('PTW_ROLE_CATALOG covers all core operational roles with labels and icons', () => {
@@ -213,7 +213,7 @@ test('PTW_ROLE_CATALOG covers all core operational roles with labels and icons',
     'PTW_ADMIN',
     'PTW_ACCP',
     'PTW_ACCEPTOR',
-    'PTW_REQUESTER',
+    'PTW_ISSU',
     'PTW_HOLDER',
     'PTW_HOLD',
     'PTW_APPROVER',
@@ -247,7 +247,7 @@ test('adminApi.computeRoleStats correctly calculates role metrics and active use
     { SAP_USER: 'VERTIF-V', PTW_ROLE: 'PTW_ADMIN', ACTIVE: true },
     { SAP_USER: 'VERTIF-V', PTW_ROLE: 'PTW_APPROVER', ACTIVE: true },
     { SAP_USER: 'SHARMA-M', PTW_ROLE: 'PTW_ISSUER', ACTIVE: true },
-    { SAP_USER: 'PATEL-R', PTW_ROLE: 'PTW_REQUESTER', ACTIVE: true },
+    { SAP_USER: 'PATEL-R', PTW_ROLE: 'PTW_ISSU', ACTIVE: true },
     { SAP_USER: 'CONTRACTOR-01', PTW_ROLE: 'PTW_HOLDER', ACTIVE: false }
   ];
 
@@ -255,52 +255,47 @@ test('adminApi.computeRoleStats correctly calculates role metrics and active use
   assert.equal(stats.totalRoles, 5);
   assert.equal(stats.activeAdmins, 1);
   assert.equal(stats.activeApprovers, 1);
-  assert.equal(stats.activeIssuers, 1);
-  assert.equal(stats.activeRequesters, 1);
+  assert.equal(stats.activeIssuers, 2);
   assert.equal(stats.inactiveRoles, 1);
   assert.equal(stats.uniqueUsers, 4); // VERTIF-V, SHARMA-M, PATEL-R, CONTRACTOR-01
 });
 
-test('adminApi.getUserRoles filters by active status and user account', async () => {
-  const allRoles = await adminApi.getUserRoles();
-  assert.ok(allRoles.length >= 1);
-  assert.ok(allRoles.some((r) => r.SAP_USER === 'VERTIF-V' && r.PTW_ROLE === 'PTW_ADMIN'));
-
-  const vertifOnly = await adminApi.getUserRoles({ user: 'VERTIF-V' });
-  assert.ok(vertifOnly.every((r) => r.SAP_USER === 'VERTIF-V'));
-
-  const activeOnly = await adminApi.getUserRoles({ activeOnly: true });
-  assert.ok(activeOnly.every((r) => r.ACTIVE === true));
+test('adminApi reads only live matching roles and treats only X as active', async () => {
+  const instance = odataClient.instance;
+  const original = instance.defaults.adapter;
+  instance.defaults.adapter = async config => ({data: {value: [
+    {SAP_USER: 'TEST', PTW_ROLE: 'PTW_ADMIN', ACTIVE: 'X'},
+    {SAP_USER: 'TEST', PTW_ROLE: 'PTW_GAS', ACTIVE: true},
+    {SAP_USER: 'OTHER', PTW_ROLE: 'PTW_ADMIN', ACTIVE: 'X'}
+  ]}, status: 200, statusText: 'OK', headers: {}, config});
+  try {
+    const roles = await adminApi.getUserRoles({user: 'TEST', activeOnly: true});
+    assert.equal(roles.length, 1);
+    assert.equal(roles[0].PTW_ROLE, 'PTW_ADMIN');
+    assert.equal(roles[0].ACTIVE, true);
+  } finally { instance.defaults.adapter = original; }
 });
 
-test('adminApi.createUserRole and updateUserRoleStatus perform expected data lifecycle', async () => {
-  const newUser = 'TEST-ADMIN-01';
-  const role = 'PTW_ADMIN';
-
-  // 1. Create
-  const created = await adminApi.createUserRole({
-    SAP_USER: newUser,
-    PTW_ROLE: role,
-    ACTIVE: true
-  });
-  assert.equal(created.SAP_USER, newUser);
-  assert.equal(created.PTW_ROLE, role);
-  assert.equal(created.ACTIVE, true);
-
-  // 2. Update status
-  const updated = await adminApi.updateUserRoleStatus(newUser, role, false);
-  assert.equal(updated.ACTIVE, false);
-
-  // 3. Delete
-  const deleted = await adminApi.deleteUserRole(newUser, role);
-  assert.equal(deleted, true);
-
-  // 4. Verify removed
-  const rolesAfter = await adminApi.getUserRoles({ user: newUser });
-  assert.equal(rolesAfter.length, 0);
+test('adminApi propagates SAP failures without cached roles or fake mutation success', async () => {
+  const instance = odataClient.instance;
+  const original = instance.defaults.adapter;
+  const originalCsrf = odataClient.csrfToken;
+  odataClient.csrfToken = 'test-token';
+  instance.defaults.adapter = async config => {
+    const error = new Error('SAP denied operation');
+    error.config = config;
+    error.response = {status: 403, data: {}, headers: {}, config};
+    throw error;
+  };
+  try {
+    await assert.rejects(() => adminApi.getUserRoles());
+    await assert.rejects(() => adminApi.createUserRole({SAP_USER: 'TEST', PTW_ROLE: 'PTW_ADMIN', ACTIVE: true}));
+    await assert.rejects(() => adminApi.updateUserRoleStatus('TEST', 'PTW_ADMIN', false));
+    await assert.rejects(() => adminApi.deleteUserRole('TEST', 'PTW_ADMIN'));
+  } finally { instance.defaults.adapter = original; odataClient.csrfToken = originalCsrf; }
 });
 
-test('adminApi sends boolean true for Active and false for Inactive in SAP payloads', async () => {
+test('adminApi sends X for Active and empty string for Inactive in SAP payloads', async () => {
   const instance = odataClient.instance;
   const originalAdapter = instance.defaults.adapter;
   const originalCsrf = odataClient.csrfToken;
@@ -327,7 +322,7 @@ test('adminApi sends boolean true for Active and false for Inactive in SAP paylo
   };
 
   try {
-    // 1. Active Create: must send ACTIVE: true
+    // 1. Active Create: must send ACTIVE: "X"
     await adminApi.createUserRole({
       SAP_USER: 'GF10409',
       PTW_ROLE: 'PTW_ADMIN',
@@ -335,9 +330,9 @@ test('adminApi sends boolean true for Active and false for Inactive in SAP paylo
     });
     const postActive = capturedPayloads.find((p) => p.method === 'post');
     assert.ok(postActive, 'Must issue POST /UserRole');
-    assert.strictEqual(postActive.data.ACTIVE, true, 'Active status must send boolean true to SAP');
+    assert.strictEqual(postActive.data.ACTIVE, 'X', 'Active status must send X to SAP');
 
-    // 2. Inactive Create: must send ACTIVE: false
+    // 2. Inactive Create: must send ACTIVE: ""
     capturedPayloads.length = 0;
     await adminApi.createUserRole({
       SAP_USER: 'GF10409',
@@ -345,22 +340,43 @@ test('adminApi sends boolean true for Active and false for Inactive in SAP paylo
       ACTIVE: false
     });
     const postInactive = capturedPayloads.find((p) => p.method === 'post');
-    assert.strictEqual(postInactive.data.ACTIVE, false, 'Inactive status must send boolean false to SAP');
+    assert.strictEqual(postInactive.data.ACTIVE, '', 'Inactive status must send empty string to SAP');
 
-    // 3. Active Update: must send ACTIVE: true
+    // 3. Active Update: must send ACTIVE: "X"
     capturedPayloads.length = 0;
     await adminApi.updateUserRoleStatus('GF10409', 'PTW_ADMIN', true);
     const patchActive = capturedPayloads.find((p) => p.method === 'patch');
     assert.ok(patchActive, 'Must issue PATCH /UserRole');
-    assert.strictEqual(patchActive.data.ACTIVE, true, 'Active status update must send boolean true to SAP');
+    assert.strictEqual(patchActive.data.ACTIVE, 'X', 'Active status update must send X to SAP');
 
-    // 4. Inactive Update: must send ACTIVE: false
+    // 4. Inactive Update: must send ACTIVE: ""
     capturedPayloads.length = 0;
     await adminApi.updateUserRoleStatus('GF10409', 'PTW_ADMIN', false);
     const patchInactive = capturedPayloads.find((p) => p.method === 'patch');
-    assert.strictEqual(patchInactive.data.ACTIVE, false, 'Inactive status update must send boolean false to SAP');
+    assert.strictEqual(patchInactive.data.ACTIVE, '', 'Inactive status update must send empty string to SAP');
   } finally {
     instance.defaults.adapter = originalAdapter;
     odataClient.csrfToken = originalCsrf;
+  }
+});
+
+test('admin role reads normalize only X and use the SAP character filter', async () => {
+  const instance = odataClient.instance;
+  const originalAdapter = instance.defaults.adapter;
+  const values = ['X', '', null, undefined, true, false, 'TRUE', 'x', 1];
+  instance.defaults.adapter = async config => {
+    assert.equal(config.params.$filter, "ACTIVE eq 'X'");
+    return {
+      data: { value: values.map((ACTIVE, i) => ({ SAP_USER: `AUDIT-${i}`, PTW_ROLE: 'PTW_GAS', ACTIVE })) },
+      status: 200, statusText: 'OK', headers: {}, config,
+    };
+  };
+  try {
+    const roles = await adminApi.getUserRoles({ activeOnly: true });
+    assert.equal(roles.length, 1);
+    assert.equal(roles[0].SAP_USER, 'AUDIT-0');
+    assert.equal(roles[0].ACTIVE, true);
+  } finally {
+    instance.defaults.adapter = originalAdapter;
   }
 });

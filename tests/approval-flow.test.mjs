@@ -794,7 +794,7 @@ test('sitePermitApi.reviseAndResubmit updates permit values via PATCH before inv
   odataClient.patch = async (url, data) => {
     capturedPatchUrl = url;
     capturedPatchData = data;
-    return { data: { Permit_No: '0000000014', ...data } };
+    return { data: { Permit_No: '0000000014', ...data }, headers: { etag: 'W/"updated"' } };
   };
 
   odataClient.post = async (url, payload) => {
