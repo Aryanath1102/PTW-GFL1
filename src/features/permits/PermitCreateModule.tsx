@@ -129,6 +129,7 @@ export function isSubPlantRequiredForExecutionTarget(params: {
 
 export const DEFAULT_PLANT_CODES = ['1001', '1002'] as const;
 export const DEFAULT_PLANT_CODE = '1002';
+export const BLANK_PERMIT_AUFNR = 'BLANK PERMIT';
 export const BLANK_PERMIT_COMMENT = 'Blank Permit (No SAP Order / Notification Ref)';
 
 /**
@@ -805,8 +806,11 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
   useEffect(() => {
     if (!revisionPermit) return;
 
-    const hasPmRef = Boolean(revisionPermit.Aufnr?.trim() || revisionPermit.Qmnum?.trim());
-    setIsBlankPermit(!hasPmRef);
+    const isBlankRevision =
+      revisionPermit.Aufnr?.trim().toUpperCase() === BLANK_PERMIT_AUFNR ||
+      (!revisionPermit.Aufnr?.trim() && !revisionPermit.Qmnum?.trim());
+    const hasPmRef = !isBlankRevision;
+    setIsBlankPermit(isBlankRevision);
 
     if (revisionPermit.PermitType) setPermitType(revisionPermit.PermitType);
     if (revisionPermit.Aufnr) setAufnr(revisionPermit.Aufnr);
@@ -1467,8 +1471,8 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
     if (typeof draft.isBlankPermit === 'boolean') setIsBlankPermit(draft.isBlankPermit);
     if (draft.permitType) setPermitType(draft.permitType);
     if (draft.sitePlan) setSitePlan(draft.sitePlan);
-    if (draft.aufnr) setAufnr(draft.aufnr);
-    if (draft.qmnum) setQmnum(draft.qmnum);
+    if (draft.aufnr !== undefined) setAufnr(draft.aufnr);
+    if (draft.qmnum !== undefined) setQmnum(draft.qmnum);
     if (draft.auart) setAuart(draft.auart);
     if (draft.personResp) setPersonResp(draft.personResp);
     if (draft.plannerGroup) setPlannerGroup(draft.plannerGroup);
@@ -1939,8 +1943,12 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
     previousWorkKey.current = 'BLANK';
     setWorkSelection(null);
     setIsBlankPermit(true);
-    setAufnr('');
-    setQmnum('');
+    setAufnr((prev) =>
+      !switchingFromOtherWork && isBlankPermit && prev.trim() ? prev : BLANK_PERMIT_AUFNR
+    );
+    if (switchingFromOtherWork || !isBlankPermit) {
+      setQmnum('');
+    }
     setAuart('');
     setPersonResp(user?.id || '');
     setCreatorComment((prev) =>
@@ -2635,9 +2643,9 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
       Permit_No: permitNo,
       PermitType: toSapPermitType(permitType) || permitType,
 
-      Aufnr: aufnr,
-      Qmnum: qmnum,
-      Auart: auart,
+      Aufnr: aufnr.trim(),
+      Qmnum: qmnum.trim(),
+      Auart: auart.trim(),
       Qmart: workSelection?.reference.ReferenceSource === 'NOTIFICATION' ? workSelection.reference.OrderNotifType : '',
       Qmtxt: workSelection?.reference.ReferenceSource === 'NOTIFICATION' ? workSelection.reference.JobDescription : '',
       Qmdat: workSelection?.reference.ReferenceSource === 'NOTIFICATION' ? workSelection.reference.WorkDate : null,
@@ -3205,8 +3213,8 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
             ) : isBlankPermit ? (
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-mono">
                 <span className="material-symbols-outlined text-[15px] text-amber-700">description</span>
-                <span className="font-bold text-amber-800">Blank Permit</span>
-                <span className="text-amber-700/80 hidden sm:inline">· No SAP Ref</span>
+                <span className="font-bold text-amber-800">{aufnr.trim() || BLANK_PERMIT_AUFNR}</span>
+                <span className="text-amber-700/80 hidden sm:inline">· Manual Ref</span>
                 <button
                   type="button"
                   onClick={() => setActiveTab('work')}
@@ -3543,7 +3551,12 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
               onStartBlankPermit={handleStartBlankPermit}
               onInvalidate={() => {
                 setWorkSelection(null);
-                setIsBlankPermit(false);
+                if (isBlankPermit) {
+                  setIsBlankPermit(false);
+                  setAufnr('');
+                  setQmnum('');
+                  setAuart('');
+                }
                 setSubmissionResponse(null);
                 setNotificationBanner(null);
               }}
@@ -3836,7 +3849,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                 title="SAP Maintenance Order & Notification Linkage"
                 subtitle={
                   isBlankPermit && !workSelection
-                    ? 'Blank permit active (no PM order, notification, or shutdown reference).'
+                    ? `Blank permit active — MO Number defaults to ${BLANK_PERMIT_AUFNR} (editable up to 12 chars).`
                     : 'Master data linked directly from SAP S/4HANA (Read-only master data).'
                 }
                 icon="construction"
@@ -3858,28 +3871,46 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                   <div>
                     <label className="ptw-label flex items-center justify-between">
                       <span>MO Number (Aufnr)</span>
-                      <span className="text-[10px] text-slate-400 font-mono">SAP MO</span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {isBlankPermit ? `${aufnr.length}/12` : 'SAP MO'}
+                      </span>
                     </label>
                     <input
+                      id="field-aufnr"
                       type="text"
                       value={aufnr}
-                      readOnly
-                      placeholder={isBlankPermit ? '— (Blank)' : 'e.g. 400100001'}
-                      className="ptw-input font-mono bg-slate-50 text-slate-700 cursor-not-allowed"
+                      maxLength={12}
+                      readOnly={!isBlankPermit}
+                      onChange={(e) => isBlankPermit && setAufnr(e.target.value)}
+                      placeholder={isBlankPermit ? BLANK_PERMIT_AUFNR : 'e.g. 400100001'}
+                      className={`ptw-input font-mono ${
+                        isBlankPermit
+                          ? 'bg-white text-slate-900'
+                          : 'bg-slate-50 text-slate-700 cursor-not-allowed'
+                      }`}
                     />
                   </div>
 
                   <div>
                     <label className="ptw-label flex items-center justify-between">
                       <span>Notification (Qmnum)</span>
-                      <span className="text-[10px] text-slate-400 font-mono">SAP M2</span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {isBlankPermit ? `${qmnum.length}/12` : 'SAP M2'}
+                      </span>
                     </label>
                     <input
+                      id="field-qmnum"
                       type="text"
                       value={qmnum}
-                      readOnly
-                      placeholder={isBlankPermit ? '— (Blank)' : 'e.g. 100100000001'}
-                      className="ptw-input font-mono bg-slate-50 text-slate-700 cursor-not-allowed"
+                      maxLength={12}
+                      readOnly={!isBlankPermit}
+                      onChange={(e) => isBlankPermit && setQmnum(e.target.value)}
+                      placeholder={isBlankPermit ? 'Optional (max 12)' : 'e.g. 100100000001'}
+                      className={`ptw-input font-mono ${
+                        isBlankPermit
+                          ? 'bg-white text-slate-900'
+                          : 'bg-slate-50 text-slate-700 cursor-not-allowed'
+                      }`}
                     />
                   </div>
 
@@ -5652,7 +5683,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                         {workSelection
                           ? `${workSelection.source.toUpperCase()} ${referenceId(workSelection.source, workSelection.reference)}`
                           : isBlankPermit
-                          ? 'Blank Permit (No SAP Ref)'
+                          ? `Blank Permit (${[aufnr.trim(), qmnum.trim()].filter(Boolean).join(' / ') || 'No SAP Ref'})`
                           : 'Not selected'}
                         {werks ? ` · Plant ${werks}` : ''}
                       </dd>
@@ -5800,7 +5831,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
               {workSelection
                 ? `${workSelection.source} ${referenceId(workSelection.source, workSelection.reference)}`
                 : isBlankPermit
-                ? 'Blank Permit (No SAP Ref)'
+                ? `Blank Permit (${[aufnr.trim(), qmnum.trim()].filter(Boolean).join(' / ') || 'No SAP Ref'})`
                 : 'Select work reference to begin'}
             </span>
           </div>
