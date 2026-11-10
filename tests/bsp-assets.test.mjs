@@ -96,3 +96,31 @@ test('new plant drawing and original PDF are included intact in the BSP package'
     assert.ok(rules.some(rule=>rule.test(name)),name+' must be uploaded as binary');
   }
 });
+
+test('GitHub Pages serves compiled modules and the logo beneath the project path', async () => {
+  const html = await readFile(resolve(dist, 'index.html'), 'utf8');
+  const base = new URL('https://aryanath1102.github.io/PTW-GFL1/');
+  const references = [...html.matchAll(/\b(?:src|href)=["']([^"']+)["']/gi)].map(match => match[1]);
+  for (const reference of references) {
+    const pathname = new URL(reference, base).pathname;
+    assert.doesNotMatch(pathname, /\.tsx?$/i, `Uncompiled TypeScript reference: ${reference}`);
+    assert.doesNotMatch(pathname, /(?:^|\/)src(?:\/|$)/i, `Source directory reference: ${reference}`);
+  }
+
+  const modules = [...html.matchAll(/<script\b(?=[^>]*\btype=["']module["'])[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi)]
+    .map(match => match[1]);
+  assert.ok(modules.length > 0, 'Built HTML must load a compiled JavaScript module');
+  const logos = references.filter(reference => new URL(reference, base).pathname.endsWith('/GFL-Logo.webp'));
+  assert.ok(logos.length > 0, 'Built HTML must reference the GFL logo');
+
+  for (const reference of [...modules, ...logos]) {
+    const url = new URL(reference, base);
+    assert.ok(url.href.startsWith(base.href), `Asset escapes GitHub Pages project path: ${reference}`);
+    if (modules.includes(reference)) assert.match(url.pathname, /\.js$/i);
+    const bytes = await readFile(resolve(dist, decodeURIComponent(url.pathname.slice(base.pathname.length))));
+    assert.ok(bytes.length > 0, `Missing or empty published asset: ${reference}`);
+    if (logos.includes(reference)) {
+      assert.deepEqual(bytes, await readFile(resolve('public', 'GFL-Logo.webp')));
+    }
+  }
+});
