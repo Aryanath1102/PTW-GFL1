@@ -129,7 +129,8 @@ export function isSubPlantRequiredForExecutionTarget(params: {
 
 export const DEFAULT_PLANT_CODES = ['1001', '1002'] as const;
 export const DEFAULT_PLANT_CODE = '1002';
-export const BLANK_PERMIT_AUFNR = 'BLANK PERMIT';
+export const BLANK_PERMIT_AUFNR = '-';
+export const BLANK_PERMIT_QMNUM = '-';
 export const BLANK_PERMIT_COMMENT = 'Blank Permit (No SAP Order / Notification Ref)';
 
 /**
@@ -150,6 +151,7 @@ interface PermitCreateModuleProps {
   onBack?: () => void;
   revisionPermit?: PermitDeepInsertResponse | null;
   onNavigateModule?: (moduleId: string) => void;
+  returnedIsolation?: SapIsolationHeader | null;
 }
 
 export type TabKey = 'work' | 'general' | 'procedure' | 'workers' | 'ppe' | 'hazards' | 'gas-isolation' | 'payload';
@@ -743,7 +745,7 @@ export function computeShiftValidityPreset(
   };
 }
 
-export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, onBack, revisionPermit, onNavigateModule }) => {
+export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, onBack, revisionPermit, onNavigateModule, returnedIsolation }) => {
   // A new request starts without asserted work, crew or safety evidence.
   const [activeTab, setActiveTab] = useState<TabKey>('work');
 
@@ -807,7 +809,9 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
     if (!revisionPermit) return;
 
     const isBlankRevision =
-      revisionPermit.Aufnr?.trim().toUpperCase() === BLANK_PERMIT_AUFNR ||
+      revisionPermit.Aufnr?.trim() === '-' ||
+      revisionPermit.Aufnr?.trim().toUpperCase() === 'BLANK PERMIT' ||
+      revisionPermit.Qmnum?.trim() === '-' ||
       (!revisionPermit.Aufnr?.trim() && !revisionPermit.Qmnum?.trim());
     const hasPmRef = !isBlankRevision;
     setIsBlankPermit(isBlankRevision);
@@ -1091,6 +1095,53 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
   const [selectedMatrixCell, setSelectedMatrixCell] = useState<{ c: number; l: number }>({ c: 4, l: 4 });
 
   const [isolations, setIsolations] = useState<IsolationRecord[]>([]);
+  const [isolationPointsLoading, setIsolationPointsLoading] = useState(false);
+  const [isolationPointsError, setIsolationPointsError] = useState('');
+  const [isolationPointsRetry, setIsolationPointsRetry] = useState(0);
+
+  useEffect(() => {
+    if (!returnedIsolation?.IsolationNo) return;
+    setIsolationNo(returnedIsolation.IsolationNo);
+    setIsolationRequired('X');
+    setAvailableIsolations(prev => Array.from(new Set([returnedIsolation.IsolationNo, ...prev])));
+  }, [returnedIsolation]);
+
+  // Read actual SAP points, including when creation returns only the certificate header.
+  useEffect(() => {
+    const controller = new AbortController();
+    setIsolations([]);
+    setIsolationPointsError('');
+    setIsolationPointsLoading(Boolean(isolationNo.trim()));
+    if (!isolationNo.trim()) return () => controller.abort();
+    isolationApi.read(isolationNo.trim(), controller.signal).then(certificate => {
+      if (controller.signal.aborted) return;
+      setIsolations((certificate?._Item || []) as unknown as IsolationRecord[]);
+    }).catch(() => {
+      if (!controller.signal.aborted) setIsolationPointsError('Unable to load isolation points from SAP. Retry to view them.');
+    }).finally(() => {
+      if (!controller.signal.aborted) setIsolationPointsLoading(false);
+    });
+    return () => controller.abort();
+  }, [isolationNo, isolationPointsRetry]);
+
+  const renderIsolationPoints = () => (
+    <div className="mt-3 space-y-2" aria-live="polite">
+      <h4 className="text-xs font-bold text-slate-800">Isolation Points</h4>
+      {isolationPointsLoading ? <p className="text-xs text-slate-600">Loading isolation points…</p> :
+        isolationPointsError ? <p className="text-xs text-red-700">{isolationPointsError} <button type="button" className="underline" onClick={() => setIsolationPointsRetry(value => value + 1)}>Retry</button></p> :
+        isolations.length === 0 ? <p className="text-xs text-slate-600">No isolation points returned by SAP.</p> : (
+          <div className="overflow-x-auto rounded border border-slate-200 bg-white">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50"><tr>{['Isolation Point', 'Reference Type', 'Reference ID', 'Type / Method', 'Lock / Tag No'].map(label => <th key={label} className="p-2 font-semibold">{label}</th>)}</tr></thead>
+              <tbody>{isolations.map((point, index) => <tr key={point.ItemNo || index} className="border-t border-slate-100">
+                <td className="p-2">{point.IsolationPoint}</td><td className="p-2">{point.ReferenceType}</td><td className="p-2 font-mono">{point.ReferenceId}</td><td className="p-2">{point.IsolType} / {point.IsolMethod}</td><td className="p-2 font-mono">{point.LockTagNo}</td>
+              </tr>)}</tbody>
+            </table>
+          </div>
+        )}
+    </div>
+  );
+
   // UI state for Submitting & Modals
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [creationUncertain, setCreationUncertain] = useState(false);
@@ -1213,7 +1264,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
     const defaultDesc = jobDesc?.trim() ? `${jobDesc.trim()} - LOTO Boundary` : 'Plant Maintenance Isolation Boundary';
     const defaultRemarks = areaLoc?.trim() ? `Work Area: ${areaLoc.trim()}` : (werks ? `Plant ${werks}` : '');
     const refType = equnr?.trim() ? 'EQUI' : (tplnr?.trim() ? 'FLOC' : 'EQUI');
-    const refId = equnr?.trim() || tplnr?.trim() || '10000001';
+    const refId = ''; // Reference ID is entered manually for each isolation point.
     const defaultPoint = equnr?.trim() ? `${equnr.trim()}-ISO-01` : 'POINT-01';
 
     setNewIsoDescription(defaultDesc);
@@ -1236,7 +1287,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
   const handleAddIsoPoint = () => {
     const nextIdx = newIsoPoints.length + 1;
     const refType = equnr?.trim() ? 'EQUI' : (tplnr?.trim() ? 'FLOC' : 'EQUI');
-    const refId = equnr?.trim() || tplnr?.trim() || '10000001';
+    const refId = ''; // Reference ID is entered manually for each isolation point.
     setNewIsoPoints((prev) => [
       ...prev,
       {
@@ -1316,6 +1367,19 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
         setIsolations(result._Item as unknown as IsolationRecord[]);
       }
 
+      // Immediately persist linked isolation into draft storage
+      try {
+        const updatedDraft = {
+          ...getCurrentDraftPayload(),
+          isolationRequired: 'X' as Requirement,
+          isolationNo: result.IsolationNo,
+          isolations: (result._Item as unknown as IsolationRecord[]) || []
+        };
+        saveDraft(updatedDraft);
+        const scopedKey = `gfl_ptw_draft_${user?.client || 'auto'}:${user?.id || 'guest'}_permit_create`;
+        localStorage.setItem(scopedKey, JSON.stringify({ data: updatedDraft, timestamp: Date.now(), userId: `${user?.client || 'auto'}:${user?.id || 'guest'}` }));
+      } catch {}
+
       toast.success(
         `Isolation Certificate ${result.IsolationNo} successfully registered in SAP database!`,
         { title: 'Isolation Registered & Linked', duration: 6000 }
@@ -1382,13 +1446,68 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
   });
 
   const handleJumpToFullIsolationWorkspace = () => {
-    saveDraft(getCurrentDraftPayload());
-    toast.info('Permit draft saved. Opening full Isolation Workspace...', { title: 'Draft Saved' });
+    navigateToIsolationCreatePage();
+  };
+
+  const navigateToIsolationCreatePage = () => {
+    const current = getCurrentDraftPayload();
+    saveDraft(current);
+    try {
+      const now = Date.now();
+      const scopedKey = `gfl_ptw_draft_${user?.client || 'auto'}:${user?.id || 'guest'}_permit_create`;
+      const draftRecord = { data: current, timestamp: now, userId: `${user?.client || 'auto'}:${user?.id || 'guest'}` };
+      localStorage.setItem(scopedKey, JSON.stringify(draftRecord));
+      sessionStorage.setItem(scopedKey, JSON.stringify(draftRecord));
+      document.cookie = `gfl_ptw_draft_saved=${now}; path=/; max-age=604800; SameSite=Lax`;
+    } catch {}
+
+    try {
+      const defaultDesc = jobDesc?.trim() ? `${jobDesc.trim()} - LOTO Boundary` : 'Plant Maintenance Isolation Boundary';
+      const defaultRemarks = areaLoc?.trim() ? `Work Area: ${areaLoc.trim()}` : (werks ? `Plant ${werks}` : '');
+      const initialIsoContext = {
+        description: defaultDesc,
+        remarks: defaultRemarks,
+        referenceType: 'EQUI',
+        referenceId: '', // Blank for user to choose
+        pointTag: equnr?.trim() ? `${equnr.trim()}-ISO-01` : (tplnr?.trim() ? `${tplnr.trim()}-ISO-01` : 'POINT-01')
+      };
+      sessionStorage.setItem('ptw_initial_isolation_context', JSON.stringify(initialIsoContext));
+    } catch {}
+
     setShowCreateIsoModal(false);
     if (onNavigateModule) {
       onNavigateModule('create-isolation');
     } else if (onBack) {
       onBack();
+    }
+  };
+
+  // Explicit user-triggered save action (persists to localStorage, sessionStorage, and cookie backup)
+  const handleManualSaveDraft = () => {
+    const payload = getCurrentDraftPayload();
+    try {
+      const now = Date.now();
+      const scopedKey = `gfl_ptw_draft_${user?.client || 'auto'}:${user?.id || 'guest'}_permit_create`;
+      const draftRecord = {
+        data: payload,
+        timestamp: now,
+        userId: `${user?.client || 'auto'}:${user?.id || 'guest'}`
+      };
+      localStorage.setItem(scopedKey, JSON.stringify(draftRecord));
+      try {
+        sessionStorage.setItem(scopedKey, JSON.stringify(draftRecord));
+      } catch {}
+      try {
+        document.cookie = `gfl_ptw_draft_saved=${now}; path=/; max-age=604800; SameSite=Lax`;
+      } catch {}
+      saveDraft(payload);
+      toast.success(
+        `Permit draft saved successfully at ${new Date(now).toLocaleTimeString()}! All form data is preserved.`,
+        { title: 'Draft Saved', duration: 3500 }
+      );
+    } catch (err: any) {
+      console.warn('Failed to save draft:', err);
+      toast.error('Failed to save draft: ' + (err?.message || 'Storage error'));
     }
   };
 
@@ -1510,8 +1629,15 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
     if (draft.validToT) setValidToT(draft.validToT);
     if (draft.gasTestFreqHr) setGasTestFreqHr(draft.gasTestFreqHr);
     if (draft.creatorComment) setCreatorComment(draft.creatorComment);
-    if (draft.isolationRequired) setIsolationRequired(draft.isolationRequired);
-    if (draft.gasTestRequired) setGasTestRequired(draft.gasTestRequired);
+    if (draft.isBlankPermit) {
+      setIsolationRequired(' ');
+      setGasTestRequired('N');
+      setIsolationNo('');
+      setIsolations([]);
+    } else {
+      if (draft.isolationRequired) setIsolationRequired(draft.isolationRequired);
+      if (draft.gasTestRequired) setGasTestRequired(draft.gasTestRequired);
+    }
     if (draft.isolationRefType) setIsolationRefType(draft.isolationRefType);
     if (draft.isolationNo) setIsolationNo(draft.isolationNo);
     if (draft.workers) setWorkers(draft.workers);
@@ -1943,13 +2069,13 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
     previousWorkKey.current = 'BLANK';
     setWorkSelection(null);
     setIsBlankPermit(true);
-    setAufnr((prev) =>
-      !switchingFromOtherWork && isBlankPermit && prev.trim() ? prev : BLANK_PERMIT_AUFNR
-    );
-    if (switchingFromOtherWork || !isBlankPermit) {
-      setQmnum('');
-    }
+    setAufnr(BLANK_PERMIT_AUFNR);
+    setQmnum(BLANK_PERMIT_QMNUM);
     setAuart('');
+    setGasTestRequired('N');
+    setIsolationRequired(' ');
+    setIsolationNo('');
+    setIsolations([]);
     setPersonResp(user?.id || '');
     setCreatorComment((prev) =>
       !switchingFromOtherWork && isBlankPermit && prev.trim() ? prev : BLANK_PERMIT_COMMENT
@@ -3213,7 +3339,9 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
             ) : isBlankPermit ? (
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-mono">
                 <span className="material-symbols-outlined text-[15px] text-amber-700">description</span>
-                <span className="font-bold text-amber-800">{aufnr.trim() || BLANK_PERMIT_AUFNR}</span>
+                <span className="font-bold text-amber-800">
+                  {aufnr.trim() && aufnr.trim() !== '-' ? aufnr.trim() : 'Blank Permit (-)'}
+                </span>
                 <span className="text-amber-700/80 hidden sm:inline">· Manual Ref</span>
                 <button
                   type="button"
@@ -3235,6 +3363,16 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
               <span className="px-2.5 py-1 rounded-xl font-mono text-xs font-bold bg-[#006398]/10 text-[#006398] border border-[#006398]/20">
                 {completionPercentage}%
               </span>
+
+              <button
+                type="button"
+                onClick={handleManualSaveDraft}
+                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-mono font-bold flex items-center gap-1 shadow-2xs hover:shadow-xs transition-all cursor-pointer"
+                title="Save current permit draft to storage & cookies"
+              >
+                <span className="material-symbols-outlined text-[14px]">save</span>
+                <span>Save</span>
+              </button>
 
               {activeTab !== 'work' && (
                 <button
@@ -3849,7 +3987,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                 title="SAP Maintenance Order & Notification Linkage"
                 subtitle={
                   isBlankPermit && !workSelection
-                    ? `Blank permit active — MO Number defaults to ${BLANK_PERMIT_AUFNR} (editable up to 12 chars).`
+                    ? "Blank permit active — MO Number and Notification are fixed to '-' (Read-only)."
                     : 'Master data linked directly from SAP S/4HANA (Read-only master data).'
                 }
                 icon="construction"
@@ -3872,7 +4010,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                     <label className="ptw-label flex items-center justify-between">
                       <span>MO Number (Aufnr)</span>
                       <span className="text-[10px] text-slate-400 font-mono">
-                        {isBlankPermit ? `${aufnr.length}/12` : 'SAP MO'}
+                        {isBlankPermit ? 'Fixed (-)' : 'SAP MO'}
                       </span>
                     </label>
                     <input
@@ -3880,14 +4018,9 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                       type="text"
                       value={aufnr}
                       maxLength={12}
-                      readOnly={!isBlankPermit}
-                      onChange={(e) => isBlankPermit && setAufnr(e.target.value)}
+                      readOnly
                       placeholder={isBlankPermit ? BLANK_PERMIT_AUFNR : 'e.g. 400100001'}
-                      className={`ptw-input font-mono ${
-                        isBlankPermit
-                          ? 'bg-white text-slate-900'
-                          : 'bg-slate-50 text-slate-700 cursor-not-allowed'
-                      }`}
+                      className="ptw-input font-mono bg-slate-50 text-slate-700 cursor-not-allowed"
                     />
                   </div>
 
@@ -3895,7 +4028,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                     <label className="ptw-label flex items-center justify-between">
                       <span>Notification (Qmnum)</span>
                       <span className="text-[10px] text-slate-400 font-mono">
-                        {isBlankPermit ? `${qmnum.length}/12` : 'SAP M2'}
+                        {isBlankPermit ? 'Fixed (-)' : 'SAP M2'}
                       </span>
                     </label>
                     <input
@@ -3903,14 +4036,9 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                       type="text"
                       value={qmnum}
                       maxLength={12}
-                      readOnly={!isBlankPermit}
-                      onChange={(e) => isBlankPermit && setQmnum(e.target.value)}
-                      placeholder={isBlankPermit ? 'Optional (max 12)' : 'e.g. 100100000001'}
-                      className={`ptw-input font-mono ${
-                        isBlankPermit
-                          ? 'bg-white text-slate-900'
-                          : 'bg-slate-50 text-slate-700 cursor-not-allowed'
-                      }`}
+                      readOnly
+                      placeholder={isBlankPermit ? BLANK_PERMIT_QMNUM : 'e.g. 100100000001'}
+                      className="ptw-input font-mono bg-slate-50 text-slate-700 cursor-not-allowed"
                     />
                   </div>
 
@@ -4028,7 +4156,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                       <div className="flex items-center justify-between">
                         <label className="ptw-label">Functional Location (Tplnr)</label>
                         <span className={`text-[10px] font-mono ${tplnr.length > 40 ? 'text-red-500 font-bold' : 'text-slate-400'}`}>
-                          {tplnr.length}/40
+                          {!isBlankPermit ? 'SAP Master Data (Read-only)' : `${tplnr.length}/40`}
                         </span>
                       </div>
                       <input
@@ -4036,8 +4164,13 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                         type="text"
                         maxLength={40}
                         value={tplnr}
-                        onChange={(e) => setTplnr(e.target.value)}
-                        className="ptw-input font-mono"
+                        readOnly={!isBlankPermit}
+                        onChange={(e) => isBlankPermit && setTplnr(e.target.value)}
+                        className={`ptw-input font-mono ${
+                          !isBlankPermit
+                            ? 'bg-slate-50 text-slate-700 cursor-not-allowed'
+                            : 'bg-white text-slate-900'
+                        }`}
                         placeholder="e.g. GFL-DHJ-U04-CDU"
                       />
                     </div>
@@ -4619,21 +4752,63 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                           <span className="text-red-500 font-bold">*</span>
                         </legend>
                         <div className="flex gap-6">
-                          {(['Y', 'N'] as const).map((value) => (
-                            <label key={value} className="flex items-center gap-2 cursor-pointer font-semibold text-xs text-slate-800">
-                              <input
-                                type="radio"
-                                name="gas-required"
-                                required
-                                checked={gasTestRequired === value}
-                                onChange={() => setGasTestRequired(value)}
-                                className="accent-[#006398] w-4 h-4 cursor-pointer"
-                              />
-                              <span>{value === 'Y' ? 'Yes (Mandatory Gas Test)' : 'No'}</span>
-                            </label>
-                          ))}
+                          {(['Y', 'N'] as const).map((value) => {
+                            const isYes = value === 'Y';
+                            const isOptionDisabled = isBlankPermit && isYes;
+                            return (
+                              <label
+                                key={value}
+                                onClick={(e) => {
+                                  if (isOptionDisabled) {
+                                    e.preventDefault();
+                                    toast.warning(
+                                      'Gas Testing is not available for Blank Permits. Please create the permit with an SAP Maintenance Order or Notification to enable Gas Testing.',
+                                      { title: 'SAP Reference Required', duration: 7000 }
+                                    );
+                                  }
+                                }}
+                                className={`flex items-center gap-2 font-semibold text-xs ${
+                                  isOptionDisabled
+                                    ? 'cursor-not-allowed text-slate-400 opacity-60'
+                                    : 'cursor-pointer text-slate-800'
+                                }`}
+                                title={
+                                  isOptionDisabled
+                                    ? 'Gas Testing is locked for blank permits. Create permit with an SAP MO or Notification to enable.'
+                                    : undefined
+                                }
+                              >
+                                <input
+                                  type="radio"
+                                  name="gas-required"
+                                  required
+                                  disabled={isOptionDisabled}
+                                  checked={gasTestRequired === value}
+                                  onChange={() => {
+                                    if (!isOptionDisabled) {
+                                      setGasTestRequired(value);
+                                    }
+                                  }}
+                                  className={`w-4 h-4 ${
+                                    isOptionDisabled
+                                      ? 'cursor-not-allowed accent-slate-400'
+                                      : 'accent-[#006398] cursor-pointer'
+                                  }`}
+                                />
+                                <span>{value === 'Y' ? 'Yes (Mandatory Gas Test)' : 'No'}</span>
+                              </label>
+                            );
+                          })}
                         </div>
                       </fieldset>
+                      {isBlankPermit && (
+                        <div className="mt-2.5 p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2">
+                          <span className="material-symbols-outlined text-[16px] text-amber-700 shrink-0 mt-0.5">lock</span>
+                          <span>
+                            <strong>Locked to &quot;No&quot;:</strong> Gas Testing requires an SAP Maintenance Order or Notification. Create the permit with an SAP reference to enable this option.
+                          </span>
+                        </div>
+                      )}
                       <p className="mt-2.5 text-xs text-slate-600 font-sans leading-relaxed">
                         {!isolationRequired || !gasTestRequired
                           ? 'Select both requirements to determine the initial permit status.'
@@ -4666,31 +4841,73 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                           {[
                             { value: 'X', label: 'Yes (Mandatory LOTO)' },
                             { value: ' ', label: 'No' },
-                          ].map(({ value, label }) => (
-                            <label key={value} className="flex items-center gap-2 cursor-pointer font-semibold text-xs text-slate-800">
-                              <input
-                                type="radio"
-                                name="isolation-required"
-                                required
-                                checked={
-                                  value === 'X'
-                                    ? isolationRequired === 'X' || isolationRequired === 'Y'
-                                    : isolationRequired === ' ' || isolationRequired === 'N'
-                                }
-                                onChange={() => {
-                                  setIsolationRequired(value as Requirement);
-                                  if (value === ' ') {
-                                    setIsolationNo('');
-                                    setIsolations([]);
+                          ].map(({ value, label }) => {
+                            const isYes = value === 'X';
+                            const isOptionDisabled = isBlankPermit && isYes;
+                            return (
+                              <label
+                                key={value}
+                                onClick={(e) => {
+                                  if (isOptionDisabled) {
+                                    e.preventDefault();
+                                    toast.warning(
+                                      'Isolation (LOTO) is not available for Blank Permits. Please create the permit with an SAP Maintenance Order or Notification to enable Isolation.',
+                                      { title: 'SAP Reference Required', duration: 7000 }
+                                    );
                                   }
                                 }}
-                                className="accent-[#006398] w-4 h-4 cursor-pointer"
-                              />
-                              <span>{label}</span>
-                            </label>
-                          ))}
+                                className={`flex items-center gap-2 font-semibold text-xs ${
+                                  isOptionDisabled
+                                    ? 'cursor-not-allowed text-slate-400 opacity-60'
+                                    : 'cursor-pointer text-slate-800'
+                                }`}
+                                title={
+                                  isOptionDisabled
+                                    ? 'Isolation (LOTO) is locked for blank permits. Create permit with an SAP MO or Notification to enable.'
+                                    : undefined
+                                }
+                              >
+                                <input
+                                  type="radio"
+                                  name="isolation-required"
+                                  required
+                                  disabled={isOptionDisabled}
+                                  checked={
+                                    value === 'X'
+                                      ? isolationRequired === 'X' || isolationRequired === 'Y'
+                                      : isolationRequired === ' ' || isolationRequired === 'N'
+                                  }
+                                  onChange={() => {
+                                    if (!isOptionDisabled) {
+                                      setIsolationRequired(value as Requirement);
+                                      if (value === ' ') {
+                                        setIsolationNo('');
+                                        setIsolations([]);
+                                      } else if (value === 'X') {
+                                        navigateToIsolationCreatePage();
+                                      }
+                                    }
+                                  }}
+                                  className={`w-4 h-4 ${
+                                    isOptionDisabled
+                                      ? 'cursor-not-allowed accent-slate-400'
+                                      : 'accent-[#006398] cursor-pointer'
+                                  }`}
+                                />
+                                <span>{label}</span>
+                              </label>
+                            );
+                          })}
                         </div>
                       </fieldset>
+                      {isBlankPermit && (
+                        <div className="mt-2.5 p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2">
+                          <span className="material-symbols-outlined text-[16px] text-amber-700 shrink-0 mt-0.5">lock</span>
+                          <span>
+                            <strong>Locked to &quot;No&quot;:</strong> Isolation (LOTO) requires an SAP Maintenance Order or Notification. Create the permit with an SAP reference to enable this option.
+                          </span>
+                        </div>
+                      )}
                       <p className="mt-2.5 text-xs text-slate-600 font-sans leading-relaxed">
                         When required, the isolation module user completes and approves physical isolation points in SAP.
                       </p>
@@ -4775,6 +4992,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                             </div>
                           </div>
                         </div>
+                        {isolationNo && renderIsolationPoints()}
                       </div>
                     )}
                   </div>
@@ -5513,13 +5731,14 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                         </div>
                         <div className="p-2 bg-white/80 rounded border border-emerald-100">
                           <span className="text-[10px] text-slate-500 block">Isolation Points</span>
-                          <span className="font-mono font-bold text-slate-800">{isolations.length > 0 ? `${isolations.length} Registered` : '1+ Configured'}</span>
+                          <span className="font-mono font-bold text-slate-800">{isolationPointsLoading ? 'Loading…' : isolationPointsError ? 'Unavailable' : `${isolations.length} Registered`}</span>
                         </div>
                         <div className="p-2 bg-white/80 rounded border border-emerald-100">
                           <span className="text-[10px] text-slate-500 block">Initial Status</span>
                           <span className="font-mono font-bold text-amber-700">INTD (Initiated)</span>
                         </div>
                       </div>
+                      {renderIsolationPoints()}
                     </div>
                   ) : (
                     <div className="rounded-xl border border-amber-300 bg-amber-50/70 p-4 flex items-center justify-between gap-3 flex-wrap">
@@ -5837,6 +6056,16 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleManualSaveDraft}
+              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+              title="Save current permit draft to local storage & cookies"
+            >
+              <span className="material-symbols-outlined text-[15px]">save</span>
+              <span>Save Draft</span>
+            </button>
+
             {activeTab !== 'work' && (
               <button
                 type="button"
@@ -5860,7 +6089,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
               <button
                 type="button"
                 onClick={() => {
-                  if (blockingValidation) {
+                   if (blockingValidation) {
                     toast.warning(blockingValidation.message, {
                       title: `Action Required — ${blockingValidation.target.stepName.split(':')[0]}`
                     });

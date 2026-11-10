@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSapAuth, MODULE_REGISTRY, ModuleId } from './core/auth/sapAuthContext';
+import type { SapIsolationHeader } from './core/types/isolation.types';
 import type { PermitDeepInsertResponse } from './core/types/ptw.types';
 import { SapLoginPage } from './shared/components/SapLoginPage';
 import { StitchHeader } from './shared/components/StitchHeader';
@@ -44,8 +45,16 @@ export const App: React.FC = () => {
   });
 
   const [revisionPermit, setRevisionPermit] = useState<PermitDeepInsertResponse | null>(null);
+  const [returnedIsolation, setReturnedIsolation] = useState<SapIsolationHeader | null>(null);
+  const permitScrollY = useRef<number | null>(null);
+  const [returnModule, setReturnModule] = useState<ModuleId | null>(null);
 
   const setSelectedModule = (mod: ModuleId | null) => {
+    if (mod !== 'permit-create' && mod !== 'create-isolation') {
+      setReturnModule(null);
+      setReturnedIsolation(null);
+      permitScrollY.current = null;
+    }
     setSelectedModuleState(mod);
     try {
       if (mod) {
@@ -60,7 +69,10 @@ export const App: React.FC = () => {
 
   // Guarantee that every screen/page always opens at the very top (never mid-scroll)
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    const top = selectedModule === 'permit-create' ? permitScrollY.current ?? 0 : 0;
+    const frame = requestAnimationFrame(() => window.scrollTo({ top, left: 0, behavior: 'instant' }));
+    if (selectedModule === 'permit-create') permitScrollY.current = null;
+    return () => cancelAnimationFrame(frame);
   }, [selectedModule]);
 
   // 0. Session Restoration Screen (Prevents login flicker on browser reload)
@@ -128,6 +140,28 @@ export const App: React.FC = () => {
 
       {/* Main Content Area: Padding top for fixed header (zeroed during print) */}
       <main className="flex-1 pt-16 min-h-[calc(100vh-4rem)] print:pt-0 print:p-0 print:m-0 print:min-h-0">
+        {/* Preserve the live permit and its current step during an isolation request. */}
+        {!loading && isModuleUnlocked('permit-create') &&
+          (selectedModule === 'permit-create' || (selectedModule === 'create-isolation' && returnModule === 'permit-create')) && (
+          <div hidden={selectedModule !== 'permit-create'}>
+          <PermitCreateModule
+            user={user}
+            returnedIsolation={returnedIsolation}
+            onBack={() => {
+              setRevisionPermit(null);
+              setReturnModule(null);
+              setSelectedModule(null);
+            }}
+            onNavigateModule={(modId: any) => {
+              permitScrollY.current = window.scrollY;
+              setReturnedIsolation(null);
+              setReturnModule('permit-create');
+              setSelectedModule(modId);
+            }}
+            revisionPermit={revisionPermit}
+          />
+          </div>
+        )}
         {loading ? (
           <div className="py-20 flex justify-center">
             <AppLoadingScreen
@@ -172,15 +206,7 @@ export const App: React.FC = () => {
             </div>
           </div>
         ) : selectedModule === 'permit-create' ? (
-          <PermitCreateModule
-            user={user}
-            onBack={() => {
-              setRevisionPermit(null);
-              setSelectedModule(null);
-            }}
-            onNavigateModule={(modId: any) => setSelectedModule(modId)}
-            revisionPermit={revisionPermit}
-          />
+          null
         ) : selectedModule === 'permit-details' ? (
           <PermitDisplayWorkspace
             user={user}
@@ -195,7 +221,17 @@ export const App: React.FC = () => {
             key={selectedModule}
             module={selectedModule}
             user={user}
-            onBack={() => setSelectedModule(null)}
+            returnToCaller={Boolean(returnModule)}
+            onCreated={returnModule === 'permit-create' ? setReturnedIsolation : undefined}
+            onBack={() => {
+              if (returnModule) {
+                const target = returnModule;
+                setReturnModule(null);
+                setSelectedModule(target);
+              } else {
+                setSelectedModule(null);
+              }
+            }}
           />
         ) : selectedModule === 'permit-approver' ? (
           <PermitApproverWorkspace

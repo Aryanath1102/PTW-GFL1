@@ -390,15 +390,23 @@ test('blank reference permit create allows empty Aufnr/Qmnum/Auart/Qmtxt when op
     odataClient.post = original;
   }
 
-  // With default "BLANK PERMIT" (12 chars) in Aufnr, serialization preserves it and rejects >12 chars
-  const markedBody = preparePermitCreate({ ...blankPermit, Aufnr: 'BLANK PERMIT' }, { allowBlankReference: true });
-  assert.equal(markedBody.Aufnr, 'BLANK PERMIT');
-  assert.equal(markedBody.Qmnum, '');
+  // With default "-" in Aufnr & Qmnum, serialization preserves it and rejects >12 chars
+  const markedBody = preparePermitCreate({ ...blankPermit, Aufnr: '-', Qmnum: '-' }, { allowBlankReference: true });
+  assert.equal(markedBody.Aufnr, '-');
+  assert.equal(markedBody.Qmnum, '-');
   assert.equal(markedBody.Auart, '');
   assert.equal(markedBody.Qmtxt, '');
   assert.throws(
     () => preparePermitCreate({ ...blankPermit, Aufnr: 'TOO-LONG-1234' }, { allowBlankReference: true }),
     /Aufnr must be at most 12 characters/
+  );
+  assert.throws(
+    () => preparePermitCreate({ ...blankPermit, Aufnr: '-', Qmnum: '-', GasTestRequired: 'Y', GasTestFreqHr: '2' }, { allowBlankReference: true }),
+    /Gas Testing and Isolation \(LOTO\) require an SAP Maintenance Order or Notification/
+  );
+  assert.throws(
+    () => preparePermitCreate({ ...blankPermit, Aufnr: '-', Qmnum: '-', IsolationRequired: 'X' }, { allowBlankReference: true }),
+    /Gas Testing and Isolation \(LOTO\) require an SAP Maintenance Order or Notification/
   );
 });
 

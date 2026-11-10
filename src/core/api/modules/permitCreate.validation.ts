@@ -54,7 +54,12 @@ export function preparePermitCreate(
 ): Record<string, unknown> {
   const required = ['ExecDept', 'PermitType', 'Werks', 'JobDesc', 'ValidFromD', 'ValidFromT', 'ValidToD', 'ValidToT'] as const;
   for (const key of required) if (!payload[key]?.trim()) throw new Error(`Complete ${key} before creating the permit.`);
-  if (!options?.allowBlankReference && !payload.Aufnr && !payload.Qmnum) {
+  const isBlankRef =
+    (!payload.Aufnr?.trim() && !payload.Qmnum?.trim()) ||
+    payload.Aufnr?.trim() === '-' ||
+    payload.Aufnr?.trim().toUpperCase() === 'BLANK PERMIT' ||
+    payload.Qmnum?.trim() === '-';
+  if (!options?.allowBlankReference && isBlankRef) {
     throw new Error('Select a real SAP order or notification.');
   }
   const start = new Date(`${payload.ValidFromD}T${payload.ValidFromT}+05:30`);
@@ -67,6 +72,9 @@ export function preparePermitCreate(
   const isIso = payload.IsolationRequired === 'Y' || payload.IsolationRequired === 'X';
   const isLoto = payload.LotoRequired === 'Y' || payload.LotoRequired === 'X';
   if (isLoto && !isIso) throw new Error('LOTO requires isolation. Select Yes for isolation.');
+  if (isBlankRef && (isGas || isIso || isLoto)) {
+    throw new Error('Gas Testing and Isolation (LOTO) require an SAP Maintenance Order or Notification. Please create the permit with an SAP reference.');
+  }
   if (payload._Isolation?.length) throw new Error('Create isolation certificates with their _Item points in the isolation module after the permit is created.');
   const status = initialPermitStatus(payload.IsolationRequired, payload.GasTestRequired || '');
   if (isGas && !['1', '2'].includes(payload.GasTestFreqHr)) throw new Error('Plan gas retesting at intervals of no more than two hours.');

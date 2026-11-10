@@ -14,11 +14,13 @@ interface IsolationWorkspaceProps {
   module: ModuleId;
   user: SapUser | null;
   onBack: () => void;
+  returnToCaller?: boolean;
+  onCreated?: (certificate: SapIsolationHeader) => void;
 }
 
 type ViewMode = 'list' | 'detail' | 'create';
 
-export const IsolationWorkspace: React.FC<IsolationWorkspaceProps> = ({ module, user, onBack }) => {
+export const IsolationWorkspace: React.FC<IsolationWorkspaceProps> = ({ module, user, onBack, returnToCaller, onCreated }) => {
   const [viewMode, setViewMode] = useState<ViewMode>(
     module === 'create-isolation' ? 'create' : 'list'
   );
@@ -103,6 +105,45 @@ export const IsolationWorkspace: React.FC<IsolationWorkspaceProps> = ({ module, 
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Check for pre-populated context from Permit Create flow
+  useEffect(() => {
+    if (module === 'create-isolation' || viewMode === 'create') {
+      try {
+        const raw = sessionStorage.getItem('ptw_initial_isolation_context');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          sessionStorage.removeItem('ptw_initial_isolation_context');
+          if (parsed.description) setCreateDescription(parsed.description);
+          if (parsed.remarks) setCreateRemarks(parsed.remarks);
+          if (parsed.referenceId) {
+            setCreatePoints([
+              {
+                ReferenceType: parsed.referenceType || 'EQUI',
+                ReferenceId: parsed.referenceId,
+                IsolationPoint: parsed.pointTag || 'POINT-01',
+                IsolType: 'ELEC',
+                IsolMethod: 'CB_RIRO',
+                IsolatedState: 'LOCKED',
+                DeIsolatedState: '',
+                LockTagNo: 'LT-01',
+                IsIsolated: '',
+                IsolatedBy: '',
+                IsolatedAt: null,
+                ZeroEnergyConf: '',
+                ZeroEnergyBy: '',
+                ZeroEnergyAt: null,
+                IsNormalized: '',
+                NormalizedBy: '',
+                NormalizedAt: null,
+                Remarks: ''
+              }
+            ]);
+          }
+        }
+      } catch {}
+    }
+  }, [module, viewMode]);
 
   const handleOpenEdit = async (iso: SapIsolationHeader) => {
     try {
@@ -439,6 +480,8 @@ export const IsolationWorkspace: React.FC<IsolationWorkspaceProps> = ({ module, 
 
       const result = await isolationApi.create(payload);
 
+      onCreated?.(result);
+
       // If created with a target permit number, sync the link on PermitInfo in SAP
       if (normalizedPermit && result.IsolationNo) {
         try {
@@ -452,6 +495,15 @@ export const IsolationWorkspace: React.FC<IsolationWorkspaceProps> = ({ module, 
         'success',
         `Isolation Certificate ${result.IsolationNo} successfully created and registered in SAP database.`
       );
+
+      if (returnToCaller) {
+        toast.success(
+          `Isolation Certificate ${result.IsolationNo} created! Returning to your permit...`,
+          { title: 'Isolation Registered', duration: 4500 }
+        );
+        onBack();
+        return;
+      }
       await loadIsolations();
       setSelectedIso(result);
       setViewMode('detail');
@@ -502,14 +554,14 @@ export const IsolationWorkspace: React.FC<IsolationWorkspaceProps> = ({ module, 
               type="button"
               onClick={onBack}
               className="group inline-flex items-center gap-2 rounded-xl border border-slate-200/90 bg-white px-3.5 py-1.5 text-xs font-mono font-bold text-slate-700 shadow-2xs transition-all duration-200 hover:border-[#006398] hover:bg-slate-50 hover:text-[#006398] active:scale-[0.98] cursor-pointer"
-              title="Return to Launchpad"
+              title={returnToCaller ? 'Return to Permit' : 'Return to Launchpad'}
             >
               <span className="flex h-5 w-5 items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition-colors duration-200 group-hover:bg-[#006398]/10 group-hover:text-[#006398]">
                 <span className="material-symbols-outlined text-[15px] transition-transform duration-200 group-hover:-translate-x-0.5">
                   arrow_back
                 </span>
               </span>
-              <span>Return to Launchpad</span>
+              <span>{returnToCaller ? 'Return to Permit' : 'Return to Launchpad'}</span>
             </button>
             <span className="text-slate-300 font-light">/</span>
             <div className="hidden sm:flex items-center gap-1.5 text-xs font-mono text-slate-400">
@@ -1431,10 +1483,11 @@ export const IsolationWorkspace: React.FC<IsolationWorkspaceProps> = ({ module, 
             badge={
               <button
                 type="button"
-                onClick={() => setViewMode('list')}
-                className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-xs"
+                onClick={returnToCaller ? onBack : () => setViewMode('list')}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-xs flex items-center gap-1 cursor-pointer"
               >
-                ← Back to List
+                <span className="material-symbols-outlined text-[14px]">arrow_back</span>
+                <span>{returnToCaller ? 'Return to Permit' : 'Back to List'}</span>
               </button>
             }
           >

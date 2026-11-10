@@ -11,6 +11,7 @@ const result = await build({
         buildPlantSelectOptions,
         DEFAULT_PLANT_CODE,
         BLANK_PERMIT_AUFNR,
+        BLANK_PERMIT_QMNUM,
         BLANK_PERMIT_COMMENT
       } from './src/features/permits/PermitCreateModule';
     `,
@@ -36,6 +37,7 @@ const {
   buildPlantSelectOptions,
   DEFAULT_PLANT_CODE,
   BLANK_PERMIT_AUFNR,
+  BLANK_PERMIT_QMNUM,
   BLANK_PERMIT_COMMENT
 } = compiled.exports;
 
@@ -185,8 +187,10 @@ test('Validation Target: Incomplete category compliance checklist maps to Step 5
 
 test('Blank Permit & Plant (Werks) dropdown defaults, options, and validation mapping work accurately', () => {
   assert.equal(DEFAULT_PLANT_CODE, '1002');
-  assert.equal(BLANK_PERMIT_AUFNR, 'BLANK PERMIT');
+  assert.equal(BLANK_PERMIT_AUFNR, '-');
+  assert.equal(BLANK_PERMIT_QMNUM, '-');
   assert.ok(BLANK_PERMIT_AUFNR.length <= 12, 'SAP PermitInfo.Aufnr maxLength is 12');
+  assert.ok(BLANK_PERMIT_QMNUM.length <= 12, 'SAP PermitInfo.Qmnum maxLength is 12');
   assert.ok(BLANK_PERMIT_COMMENT.includes('Blank Permit'));
 
   assert.deepEqual(buildPlantSelectOptions(), ['1001', '1002']);
