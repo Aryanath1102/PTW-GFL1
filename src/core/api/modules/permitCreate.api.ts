@@ -1,4 +1,4 @@
-import { preparePermitCreate } from './permitCreate.validation';
+import { preparePermitCreate, type PreparePermitCreateOptions } from './permitCreate.validation';
 import odataClient from '../odataClient';
 import { ODATA_ENTITIES } from '../odataEndpoints';
 import {
@@ -12,8 +12,11 @@ import {
 export class PermitCreateUnconfirmedError extends Error {}
 
 export const permitCreateApi = {
-  async createPermitDeepInsert(payload: PermitDeepInsertPayload): Promise<PermitDeepInsertResponse> {
-    const body = preparePermitCreate(payload);
+  async createPermitDeepInsert(
+    payload: PermitDeepInsertPayload,
+    options?: PreparePermitCreateOptions
+  ): Promise<PermitDeepInsertResponse> {
+    const body = preparePermitCreate(payload, options);
     let response;
     try {
       response = await odataClient.post<PermitDeepInsertResponse>(ODATA_ENTITIES.PERMIT_INFO, body, {

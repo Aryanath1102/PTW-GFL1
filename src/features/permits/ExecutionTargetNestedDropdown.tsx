@@ -1,11 +1,17 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { SapConfigRecord } from '../../core/types/config.types';
-import { formatExecutionTarget } from './PermitCreateModule';
+import {
+  formatExecutionTarget,
+  normalizeWorkCenterTarget,
+  isWorkCenterExecutionTarget,
+} from './PermitCreateModule';
 
 interface ExecutionTargetNestedDropdownProps {
   id?: string;
   execDept: string;
   execPlant: string;
+  workCenterDesc?: string;
+  workCenterCode?: string;
   onChange: (dept: string, plant: string) => void;
   deptOptions: SapConfigRecord[];
   plantOptions: SapConfigRecord[];
@@ -16,6 +22,8 @@ export const ExecutionTargetNestedDropdown: React.FC<ExecutionTargetNestedDropdo
   id = 'field-exec-dept-container',
   execDept,
   execPlant,
+  workCenterDesc,
+  workCenterCode,
   onChange,
   deptOptions,
   plantOptions,
@@ -91,10 +99,20 @@ export const ExecutionTargetNestedDropdown: React.FC<ExecutionTargetNestedDropdo
     );
   }, [plantOptions, searchQuery]);
 
+  const wcTarget = normalizeWorkCenterTarget(workCenterDesc);
+  const isUsingWorkCenter = isWorkCenterExecutionTarget(execDept, execPlant, workCenterDesc);
+
   const handleSelect = (dept: SapConfigRecord, plant?: SapConfigRecord) => {
     const deptValue = dept.Config_Desc || dept.Config_Code;
     const plantValue = plant ? plant.Config_Desc || plant.Config_Code : '';
     onChange(deptValue, plantValue);
+    setIsOpen(false);
+    setSearchQuery('');
+  };
+
+  const handleSelectWorkCenter = () => {
+    if (!wcTarget) return;
+    onChange(wcTarget, '');
     setIsOpen(false);
     setSearchQuery('');
   };
@@ -158,9 +176,16 @@ export const ExecutionTargetNestedDropdown: React.FC<ExecutionTargetNestedDropdo
                   </span>
                 </>
               ) : (
-                <span className="font-bold text-slate-800 truncate">
-                  {execDept}
-                </span>
+                <div className="flex items-center gap-2 truncate">
+                  <span className="font-bold text-slate-800 truncate">
+                    {execDept}
+                  </span>
+                  {isUsingWorkCenter && (
+                    <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200/80 shrink-0">
+                      {workCenterCode ? `WC: ${workCenterCode}` : 'Work Center'}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           ) : (
@@ -231,6 +256,39 @@ export const ExecutionTargetNestedDropdown: React.FC<ExecutionTargetNestedDropdo
               )}
             </div>
           </div>
+
+          {/* Quick Option: Work Center Description */}
+          {wcTarget && (
+            <div className="px-3.5 py-2 bg-indigo-50/70 border-b border-indigo-100 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="material-symbols-outlined text-[16px] text-indigo-600 shrink-0">
+                  precision_manufacturing
+                </span>
+                <div className="truncate text-[11px]">
+                  <span className="font-semibold text-slate-600 mr-1.5">
+                    Work Center{workCenterCode ? ` (${workCenterCode})` : ''}:
+                  </span>
+                  <span className="font-bold text-indigo-950 font-mono">
+                    {wcTarget}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleSelectWorkCenter}
+                className={`shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all flex items-center gap-1 ${
+                  isUsingWorkCenter
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                    : 'bg-white text-indigo-700 border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[14px]">
+                  {isUsingWorkCenter ? 'check_circle' : 'bolt'}
+                </span>
+                <span>{isUsingWorkCenter ? 'Selected' : 'Use Work Center'}</span>
+              </button>
+            </div>
+          )}
 
           {/* 2-Column Cascading Body */}
           <div className="flex flex-col sm:flex-row h-[340px] divide-y sm:divide-y-0 sm:divide-x divide-slate-100 bg-white">

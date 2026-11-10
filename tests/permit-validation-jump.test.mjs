@@ -6,7 +6,12 @@ import { build } from 'esbuild';
 const result = await build({
   stdin: {
     contents: `
-      export { getValidationTarget } from './src/features/permits/PermitCreateModule';
+      export {
+        getValidationTarget,
+        buildPlantSelectOptions,
+        DEFAULT_PLANT_CODE,
+        BLANK_PERMIT_COMMENT
+      } from './src/features/permits/PermitCreateModule';
     `,
     resolveDir: process.cwd(),
     loader: 'tsx'
@@ -25,7 +30,12 @@ new Function('require', 'module', 'exports', result.outputFiles[0].text)(
   compiled.exports
 );
 
-const { getValidationTarget } = compiled.exports;
+const {
+  getValidationTarget,
+  buildPlantSelectOptions,
+  DEFAULT_PLANT_CODE,
+  BLANK_PERMIT_COMMENT
+} = compiled.exports;
 
 test('Validation Target: Validity period expiration properly maps to Step 2 and field-valid-to-datetime', () => {
   const target = getValidationTarget('The permit validity period has already ended.');
@@ -170,4 +180,25 @@ test('Validation Target: Incomplete category compliance checklist maps to Step 5
   assert.equal(wahTarget.fieldId, 'checklist-cat-W@H');
   assert.ok(wahTarget.fieldLabel.includes('Work at height'));
 });
+
+test('Blank Permit & Plant (Werks) dropdown defaults, options, and validation mapping work accurately', () => {
+  assert.equal(DEFAULT_PLANT_CODE, '1002');
+  assert.ok(BLANK_PERMIT_COMMENT.includes('Blank Permit'));
+
+  assert.deepEqual(buildPlantSelectOptions(), ['1001', '1002']);
+  assert.deepEqual(buildPlantSelectOptions('1002'), ['1001', '1002']);
+  assert.deepEqual(buildPlantSelectOptions('1001'), ['1001', '1002']);
+  assert.deepEqual(buildPlantSelectOptions('1003'), ['1001', '1002', '1003']);
+
+  const werksTarget = getValidationTarget('Plant (Werks) is mandatory. Select the SAP plant code.');
+  assert.equal(werksTarget.tab, 'general');
+  assert.equal(werksTarget.stepNumber, 2);
+  assert.equal(werksTarget.fieldId, 'field-werks');
+  assert.equal(werksTarget.fieldLabel, 'Plant (Werks)');
+
+  const schemaWerksTarget = getValidationTarget('Complete Werks before creating the permit.');
+  assert.equal(schemaWerksTarget.tab, 'general');
+  assert.equal(schemaWerksTarget.fieldId, 'field-werks');
+});
+
 

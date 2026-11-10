@@ -9,7 +9,7 @@
     "preview": "node --max-http-header-size=65536 ./node_modules/vite/bin/vite.js preview",
     "lint": "tsc --noEmit",
     "test:bsp": "npm run build && node --test tests/bsp-assets.test.mjs",
-    "test": "node --test tests/permit-resubmit.test.mjs tests/production-security.test.mjs tests/clearance-rejection.test.mjs tests/login-access.test.mjs tests/startup-cancellation.test.mjs tests/sap-client.test.mjs tests/permit-work-lookup.test.mjs tests/site-procedure.test.mjs tests/prerequisites.test.mjs tests/checklist-questionnaire.test.mjs tests/isolation-registry.test.mjs tests/risk-matrix-5x5.test.mjs tests/execution-target.test.mjs tests/phone-validation.test.mjs tests/jha-templates.test.mjs tests/approval-flow.test.mjs tests/admin-user-roles.test.mjs tests/permit-validation-jump.test.mjs tests/pagination-approvals.test.mjs",
+    "test": "node --test tests/permit-presets.test.mjs tests/permit-resubmit.test.mjs tests/production-security.test.mjs tests/clearance-rejection.test.mjs tests/login-access.test.mjs tests/startup-cancellation.test.mjs tests/sap-client.test.mjs tests/permit-work-lookup.test.mjs tests/site-procedure.test.mjs tests/prerequisites.test.mjs tests/checklist-questionnaire.test.mjs tests/isolation-registry.test.mjs tests/risk-matrix-5x5.test.mjs tests/execution-target.test.mjs tests/phone-validation.test.mjs tests/jha-templates.test.mjs tests/approval-flow.test.mjs tests/admin-user-roles.test.mjs tests/permit-validation-jump.test.mjs tests/pagination-approvals.test.mjs",
     "deploy:bsp": "echo \"Upload dist/ to SAP BSP using report /UI5/UI5_REPOSITORY_LOAD or SAP Fiori Tools\""
   },
   "dependencies": {

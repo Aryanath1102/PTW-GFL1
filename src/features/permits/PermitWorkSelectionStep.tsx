@@ -40,6 +40,8 @@ const SOURCES: { id: WorkSource; title: string; share: string; description: stri
 interface Props {
   selection: WorkSelection | null;
   client?: string;
+  isBlankPermit?: boolean;
+  onStartBlankPermit?: () => void;
   onInvalidate: () => void;
   onContinue: (selection: WorkSelection) => void;
 }
@@ -62,7 +64,14 @@ function defaultSearchDateRange(): { fromDate: string; toDate: string } {
 
 type SortOption = 'plant-asc' | 'plant-desc' | 'date-desc' | 'date-asc' | 'priority' | 'reference';
 
-export const PermitWorkSelectionStep: React.FC<Props> = ({ selection, client, onInvalidate, onContinue }) => {
+export const PermitWorkSelectionStep: React.FC<Props> = ({
+  selection,
+  client,
+  isBlankPermit = false,
+  onStartBlankPermit,
+  onInvalidate,
+  onContinue
+}) => {
   const [source, setSource] = useState<WorkSource>(() => selection?.source || 'notification');
   const [referenceIdFilter, setReferenceIdFilter] = useState(() => selection?.referenceId || '');
   const [allDates, setAllDates] = useState(() => (selection ? Boolean(selection.allDates) : false));
@@ -200,6 +209,15 @@ export const PermitWorkSelectionStep: React.FC<Props> = ({ selection, client, on
     void executeSearch(source, referenceIdFilter, fromDate, toDate, allDates, orderType);
   };
 
+  const handleTriggerBlankPermit = () => {
+    if (!onStartBlankPermit) return;
+    request.current?.abort();
+    request.current = null;
+    setLoading(false);
+    setChosen(null);
+    onStartBlankPermit();
+  };
+
   // Extract distinct plants from API payload
   const distinctPlants = useMemo(() => {
     const plants = new Set<string>();
@@ -326,12 +344,32 @@ export const PermitWorkSelectionStep: React.FC<Props> = ({ selection, client, on
               </p>
             </div>
           </div>
-          {chosen && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-mono font-bold shrink-0">
-              <span className="material-symbols-outlined text-[15px] text-emerald-600">check_circle</span>
-              <span>Linked: {referenceId(source, chosen)}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            {chosen && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-mono font-bold shrink-0">
+                <span className="material-symbols-outlined text-[15px] text-emerald-600">check_circle</span>
+                <span>Linked: {referenceId(source, chosen)}</span>
+              </div>
+            )}
+            {isBlankPermit && !chosen && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-mono font-bold shrink-0">
+                <span className="material-symbols-outlined text-[15px] text-amber-600">description</span>
+                <span>Blank Permit Active</span>
+              </div>
+            )}
+            {onStartBlankPermit && (
+              <button
+                type="button"
+                id="btn-start-blank-permit"
+                onClick={handleTriggerBlankPermit}
+                className="px-3 py-2 rounded-xl bg-white hover:bg-amber-50 text-amber-900 border border-amber-300 hover:border-amber-400 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                title="Create a standalone blank permit without an SAP Notification, Maintenance Order, or Shutdown reference"
+              >
+                <span className="material-symbols-outlined text-[16px] text-amber-700">note_add</span>
+                <span>Create Blank Permit</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -884,35 +922,47 @@ export const PermitWorkSelectionStep: React.FC<Props> = ({ selection, client, on
       {/* Action Footer */}
       <div className="ptw-card p-4 bg-slate-50/80 border-slate-200/90 flex flex-col sm:flex-row items-center justify-between gap-3">
         <p className="text-xs text-slate-500 font-sans text-center sm:text-left">
-          The selected reference will automatically populate Plant, Work Area, Work Center, Equipment, Functional Location, and Scope.
+          Select an SAP reference above to auto-populate Plant, Work Area, Equipment, and Scope — or create a blank permit without a PM reference.
         </p>
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() => {
-            if (!chosen) {
-              toast.warning('Please search and select a work order or notification reference before continuing.', { title: 'Selection Required' });
-              return;
-            }
-            const cat = (chosen.WorkCategory as WorkCategory) || (source === 'notification' ? 'Corrective' : 'Preventive');
-            onContinue({
-              category: cat,
-              source,
-              fromDate: allDates ? '' : fromDate,
-              toDate: allDates ? '' : toDate,
-              orderType: chosen.OrderNotifType || orderType,
-              referenceId: chosen.ReferenceId,
-              allDates,
-              reference: chosen
-            });
-          }}
-          className={`w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#006398] hover:bg-[#004f7a] text-white text-xs sm:text-sm font-bold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer ${
-            !chosen ? 'opacity-80 hover:opacity-100' : ''
-          }`}
-        >
-          <span>Continue to Permit Details</span>
-          <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-        </button>
+        <div className="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2">
+          {onStartBlankPermit && (
+            <button
+              type="button"
+              onClick={handleTriggerBlankPermit}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white hover:bg-amber-50 text-amber-900 border border-amber-300 hover:border-amber-400 text-xs sm:text-sm font-bold transition-all shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px] text-amber-700">note_add</span>
+              <span>Continue Without Reference</span>
+            </button>
+          )}
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => {
+              if (!chosen) {
+                toast.warning('Please search and select a work order or notification reference before continuing.', { title: 'Selection Required' });
+                return;
+              }
+              const cat = (chosen.WorkCategory as WorkCategory) || (source === 'notification' ? 'Corrective' : 'Preventive');
+              onContinue({
+                category: cat,
+                source,
+                fromDate: allDates ? '' : fromDate,
+                toDate: allDates ? '' : toDate,
+                orderType: chosen.OrderNotifType || orderType,
+                referenceId: chosen.ReferenceId,
+                allDates,
+                reference: chosen
+              });
+            }}
+            className={`w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#006398] hover:bg-[#004f7a] text-white text-xs sm:text-sm font-bold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer ${
+              !chosen ? 'opacity-80 hover:opacity-100' : ''
+            }`}
+          >
+            <span>Continue to Permit Details</span>
+            <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+          </button>
+        </div>
       </div>
     </section>
   );

@@ -44,10 +44,19 @@ function serialize(entity: string, value: Record<string, unknown>): Record<strin
   return result;
 }
 
-export function preparePermitCreate(payload: PermitDeepInsertPayload): Record<string, unknown> {
+export interface PreparePermitCreateOptions {
+  allowBlankReference?: boolean;
+}
+
+export function preparePermitCreate(
+  payload: PermitDeepInsertPayload,
+  options?: PreparePermitCreateOptions
+): Record<string, unknown> {
   const required = ['ExecDept', 'PermitType', 'Werks', 'JobDesc', 'ValidFromD', 'ValidFromT', 'ValidToD', 'ValidToT'] as const;
   for (const key of required) if (!payload[key]?.trim()) throw new Error(`Complete ${key} before creating the permit.`);
-  if (!payload.Aufnr && !payload.Qmnum) throw new Error('Select a real SAP order or notification.');
+  if (!options?.allowBlankReference && !payload.Aufnr && !payload.Qmnum) {
+    throw new Error('Select a real SAP order or notification.');
+  }
   const start = new Date(`${payload.ValidFromD}T${payload.ValidFromT}+05:30`);
   const end = new Date(`${payload.ValidToD}T${payload.ValidToT}+05:30`);
   if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start) throw new Error('Permit end date/time must be after its start.');

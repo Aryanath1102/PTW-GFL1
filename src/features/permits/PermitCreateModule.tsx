@@ -33,6 +33,7 @@ import { PermitChecklistModal } from './PermitChecklistModal';
 import { SectionCard } from '../../shared/components/SectionCard';
 import { toast } from '../../shared/context/ToastContext';
 import { useFormDraft } from '../../shared/hooks/useFormDraft';
+import type { SapIsolationHeader } from '../../core/types/isolation.types';
 import { RiskMatrix5x5Section, getRiskMatrixCell } from './RiskMatrix5x5Section';
 import { ExecutionTargetNestedDropdown } from './ExecutionTargetNestedDropdown';
 import { validatePhoneNumber, sanitizePhoneNumber } from '../../core/utils/phoneValidation';
@@ -67,10 +68,87 @@ export function formatExecutionTarget(plant: string, dept: string, deptCode?: st
   return combined.substring(0, 40);
 }
 
+/**
+ * Splits a combined SAP ExecDept string ("Plant - Department") into plant and department.
+ */
+export function parseCombinedExecutionTarget(value?: string): { plant: string; dept: string } {
+  const raw = (value || '').trim();
+  const sepIdx = raw.lastIndexOf(' - ');
+  if (sepIdx > 0) {
+    return {
+      plant: raw.slice(0, sepIdx).trim(),
+      dept: raw.slice(sepIdx + 3).trim()
+    };
+  }
+  return { plant: '', dept: raw };
+}
+
+/**
+ * Normalizes a SAP Work Center description for use as a PermitInfo.ExecDept execution target.
+ */
+export function normalizeWorkCenterTarget(workCenterDesc?: string): string {
+  return (workCenterDesc || '').trim().slice(0, 40);
+}
+
+/**
+ * Returns true when the current execution target directly uses the Work Center description.
+ */
+export function isWorkCenterExecutionTarget(
+  execDept: string,
+  execPlant: string,
+  workCenterDesc?: string
+): boolean {
+  const wcTarget = normalizeWorkCenterTarget(workCenterDesc);
+  return Boolean(wcTarget && !execPlant.trim() && execDept.trim() === wcTarget);
+}
+
+/**
+ * Checks whether a sub working plant is still required for the current execution target.
+ * Exempts Work Center descriptions (which already capture unit + discipline) and matching revision values.
+ */
+export function isSubPlantRequiredForExecutionTarget(params: {
+  execDept: string;
+  execPlant: string;
+  workCenterDesc?: string;
+  filteredPlantCount: number;
+  revisionExecDept?: string;
+}): boolean {
+  const dept = (params.execDept || '').trim();
+  if (!dept || params.execPlant.trim() || params.filteredPlantCount <= 0) {
+    return false;
+  }
+  if (isWorkCenterExecutionTarget(dept, '', params.workCenterDesc)) {
+    return false;
+  }
+  const revDept = (params.revisionExecDept || '').trim();
+  if (revDept && dept === revDept) {
+    return false;
+  }
+  return true;
+}
+
+export const DEFAULT_PLANT_CODES = ['1001', '1002'] as const;
+export const DEFAULT_PLANT_CODE = '1002';
+export const BLANK_PERMIT_COMMENT = 'Blank Permit (No SAP Order / Notification Ref)';
+
+/**
+ * Builds code-only plant select options ensuring 1001 & 1002 are always available
+ * while preserving any additional plant code returned by SAP PM references.
+ */
+export function buildPlantSelectOptions(currentWerks?: string): string[] {
+  const trimmed = (currentWerks || '').trim();
+  const base: string[] = [...DEFAULT_PLANT_CODES];
+  if (trimmed && !base.includes(trimmed)) {
+    base.push(trimmed);
+  }
+  return base;
+}
+
 interface PermitCreateModuleProps {
   user: SapUser | null;
   onBack?: () => void;
   revisionPermit?: PermitDeepInsertResponse | null;
+  onNavigateModule?: (moduleId: string) => void;
 }
 
 export type TabKey = 'work' | 'general' | 'procedure' | 'workers' | 'ppe' | 'hazards' | 'gas-isolation' | 'payload';
@@ -217,7 +295,18 @@ export function getValidationTarget(
     };
   }
 
-  if (m.includes('AreaLoc') || m.includes('work area') || m.includes('Werks') || m.includes('Area required')) {
+  if (m.includes('Werks') || m.includes('Plant (Werks)')) {
+    return {
+      tab: 'general',
+      stepNumber: 2,
+      stepName: 'Step 2: General Details',
+      fieldId: 'field-werks',
+      fieldLabel: 'Plant (Werks)',
+      advice: 'Select the SAP plant code (e.g. 1001 or 1002) in Section 2.3.'
+    };
+  }
+
+  if (m.includes('AreaLoc') || m.includes('work area') || m.includes('Area required')) {
     return {
       tab: 'general',
       stepNumber: 2,
@@ -587,7 +676,73 @@ export function getValidationTarget(
   };
 }
 
-export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, onBack, revisionPermit }) => {
+export interface ShiftValidityPreset {
+  shiftType: 'DAY' | 'EVENING' | 'NIGHT';
+  shiftCode: string;
+  validFromD: string;
+  validFromT: string;
+  validToD: string;
+  validToT: string;
+  plannedShiftEnd: string;
+}
+
+export const getOffsetDateString = (offsetDays: number = 0, baseDate: Date = new Date()): string => {
+  const d = new Date(baseDate.getTime());
+  d.setDate(d.getDate() + offsetDays);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+export const getNextDateStr = (dateStr: string): string => {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const next = new Date(y, m - 1, d + 1);
+  const nextY = next.getFullYear();
+  const nextM = String(next.getMonth() + 1).padStart(2, '0');
+  const nextD = String(next.getDate()).padStart(2, '0');
+  return `${nextY}-${nextM}-${nextD}`;
+};
+
+export function computeShiftValidityPreset(
+  shiftType: 'DAY' | 'EVENING' | 'NIGHT',
+  targetDate: string
+): ShiftValidityPreset {
+  if (shiftType === 'DAY') {
+    return {
+      shiftType: 'DAY',
+      shiftCode: 'G',
+      validFromD: targetDate,
+      validFromT: '09:00:00',
+      validToD: targetDate,
+      validToT: '17:00:00', // Standard 8h max initial validity
+      plannedShiftEnd: `${targetDate}T17:30`
+    };
+  }
+  if (shiftType === 'EVENING') {
+    return {
+      shiftType: 'EVENING',
+      shiftCode: 'B',
+      validFromD: targetDate,
+      validFromT: '17:30:00',
+      validToD: targetDate,
+      validToT: '23:00:00', // 5.5 hours
+      plannedShiftEnd: `${targetDate}T23:00`
+    };
+  }
+  const nextDate = getNextDateStr(targetDate);
+  return {
+    shiftType: 'NIGHT',
+    shiftCode: 'C',
+    validFromD: targetDate,
+    validFromT: '23:00:00',
+    validToD: nextDate,
+    validToT: '07:00:00', // Standard 8h max initial validity
+    plannedShiftEnd: `${nextDate}T09:00`
+  };
+}
+
+export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, onBack, revisionPermit, onNavigateModule }) => {
   // A new request starts without asserted work, crew or safety evidence.
   const [activeTab, setActiveTab] = useState<TabKey>('work');
 
@@ -597,6 +752,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
   }, [activeTab]);
 
   const [workSelection, setWorkSelection] = useState<WorkSelection | null>(null);
+  const [isBlankPermit, setIsBlankPermit] = useState<boolean>(false);
 
   // Permit Header Fields
   const permitNo = ''; // Assigned by SAP on creation.
@@ -621,7 +777,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
   // Plant & Location
   const [equnr, setEqunr] = useState<string>('');
   const [tplnr, setTplnr] = useState<string>('');
-  const [werks, setWerks] = useState<string>('');
+  const [werks, setWerks] = useState<string>(DEFAULT_PLANT_CODE);
   const [arbpl, setArbpl] = useState<string>('');
   const [areaLoc, setAreaLoc] = useState<string>('');
   const [jobDesc, setJobDesc] = useState<string>('');
@@ -649,6 +805,9 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
   useEffect(() => {
     if (!revisionPermit) return;
 
+    const hasPmRef = Boolean(revisionPermit.Aufnr?.trim() || revisionPermit.Qmnum?.trim());
+    setIsBlankPermit(!hasPmRef);
+
     if (revisionPermit.PermitType) setPermitType(revisionPermit.PermitType);
     if (revisionPermit.Aufnr) setAufnr(revisionPermit.Aufnr);
     if (revisionPermit.Qmnum) setQmnum(revisionPermit.Qmnum);
@@ -657,12 +816,16 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
     if (revisionPermit.PlannerGroup) setPlannerGroup(revisionPermit.PlannerGroup);
     if (revisionPermit.Equnr) setEqunr(revisionPermit.Equnr);
     if (revisionPermit.Tplnr) setTplnr(revisionPermit.Tplnr);
-    if (revisionPermit.Werks) setWerks(revisionPermit.Werks);
+    setWerks(revisionPermit.Werks || DEFAULT_PLANT_CODE);
     if (revisionPermit.Arbpl) setArbpl(revisionPermit.Arbpl);
     if (revisionPermit.AreaLoc) setAreaLoc(revisionPermit.AreaLoc);
     if (revisionPermit.JobDesc) setJobDesc(revisionPermit.JobDesc);
     if (revisionPermit.ExecAgency) setExecAgency(revisionPermit.ExecAgency);
-    if (revisionPermit.ExecDept) setExecDept(revisionPermit.ExecDept);
+    if (revisionPermit.ExecDept) {
+      const parsed = parseCombinedExecutionTarget(revisionPermit.ExecDept);
+      setExecPlant(parsed.plant);
+      setExecDept(parsed.dept);
+    }
     if (revisionPermit.SupvName) setSupvName(revisionPermit.SupvName);
     if (revisionPermit.SupvPhone) setSupvPhone(revisionPermit.SupvPhone);
     if (revisionPermit.SafetyOfficer) setSafetyOfficer(revisionPermit.SafetyOfficer);
@@ -674,19 +837,23 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
     if (revisionPermit.GasTestFreqHr) setGasTestFreqHr(revisionPermit.GasTestFreqHr);
     if (revisionPermit.CreatorComment) setCreatorComment(revisionPermit.CreatorComment);
 
-    setWorkSelection({
-      id: revisionPermit.Aufnr || revisionPermit.Qmnum || revisionPermit.Permit_No,
-      type: revisionPermit.Aufnr ? 'ORDER' : 'NOTIFICATION',
-      title: revisionPermit.JobDesc,
-      plant: revisionPermit.Werks,
-      workCenter: revisionPermit.Arbpl,
-      functionalLocation: revisionPermit.Tplnr,
-      equipment: revisionPermit.Equnr,
-      description: revisionPermit.JobDesc,
-      source: revisionPermit.Aufnr ? 'ORDER' : 'NOTIFICATION',
-      category: revisionPermit.PermitType,
-      reference: revisionPermit.Aufnr || revisionPermit.Qmnum || revisionPermit.Permit_No
-    } as unknown as WorkSelection);
+    if (hasPmRef) {
+      setWorkSelection({
+        id: revisionPermit.Aufnr || revisionPermit.Qmnum || revisionPermit.Permit_No,
+        type: revisionPermit.Aufnr ? 'ORDER' : 'NOTIFICATION',
+        title: revisionPermit.JobDesc,
+        plant: revisionPermit.Werks,
+        workCenter: revisionPermit.Arbpl,
+        functionalLocation: revisionPermit.Tplnr,
+        equipment: revisionPermit.Equnr,
+        description: revisionPermit.JobDesc,
+        source: revisionPermit.Aufnr ? 'ORDER' : 'NOTIFICATION',
+        category: revisionPermit.PermitType,
+        reference: revisionPermit.Aufnr || revisionPermit.Qmnum || revisionPermit.Permit_No
+      } as unknown as WorkSelection);
+    } else {
+      setWorkSelection(null);
+    }
 
     if (revisionPermit._Worker && revisionPermit._Worker.length > 0) {
       setWorkers(revisionPermit._Worker);
@@ -807,8 +974,74 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
     setValidToT(`${endH}:${endMin}:00`);
   };
 
+  const [presetTargetDay, setPresetTargetDay] = useState<'TODAY' | 'TOMORROW'>('TOMORROW');
+
+  // Helper preset: Tomorrow General Shift Start Time (09:00 IST)
+  const handleSetStartTomorrowGeneral = () => {
+    const tmrwDate = getOffsetDateString(1);
+    setValidFromD(tmrwDate);
+    setValidFromT('09:00:00');
+
+    // Auto-align validTo to 8 hours later (17:00) if unset or prior to tomorrow start
+    const currentEnd = validToD && validToT ? new Date(`${validToD}T${validToT.slice(0, 5)}+05:30`).getTime() : 0;
+    const newStart = new Date(`${tmrwDate}T09:00:00+05:30`).getTime();
+    if (!validToD || !validToT || currentEnd <= newStart) {
+      setValidToD(tmrwDate);
+      setValidToT('17:00:00');
+    }
+    setShift((prev) => (prev === 'GENERAL' || prev === 'G' || !prev ? 'G' : prev));
+    setSitePlan((prev) => ({
+      ...prev,
+      fields: {
+        ...prev.fields,
+        SHFT: `${tmrwDate}T17:30`
+      }
+    }));
+  };
+
+  // Helper preset: Shift Start selection dropdown
+  const handleShiftStartSelect = (selection: string) => {
+    if (!selection) return;
+    const isTomorrow = selection.startsWith('TMRW_');
+    const shiftType = selection.replace('TMRW_', '').replace('TODAY_', '') as 'DAY' | 'EVENING' | 'NIGHT';
+    const targetDate = getOffsetDateString(isTomorrow ? 1 : 0);
+    const preset = computeShiftValidityPreset(shiftType, targetDate);
+
+    setValidFromD(preset.validFromD);
+    setValidFromT(preset.validFromT);
+
+    const currentEnd = validToD && validToT ? new Date(`${validToD}T${validToT.slice(0, 5)}+05:30`).getTime() : 0;
+    const newStart = new Date(`${preset.validFromD}T${preset.validFromT.slice(0, 5)}+05:30`).getTime();
+    if (!validToD || !validToT || currentEnd <= newStart) {
+      setValidToD(preset.validToD);
+      setValidToT(preset.validToT);
+    }
+    setShift(preset.shiftCode);
+    setSitePlan((prev) => ({
+      ...prev,
+      fields: { ...prev.fields, SHFT: preset.plannedShiftEnd }
+    }));
+  };
+
+  // Helper preset: Apply full shift validity window (Start, Expiry, Shift, SHFT)
+  const handleApplyShiftPreset = (shiftType: 'DAY' | 'EVENING' | 'NIGHT', targetDay: 'TODAY' | 'TOMORROW' = presetTargetDay) => {
+    const isTomorrow = targetDay === 'TOMORROW';
+    const targetDate = getOffsetDateString(isTomorrow ? 1 : 0);
+    const preset = computeShiftValidityPreset(shiftType, targetDate);
+
+    setValidFromD(preset.validFromD);
+    setValidFromT(preset.validFromT);
+    setValidToD(preset.validToD);
+    setValidToT(preset.validToT);
+    setShift(preset.shiftCode);
+    setSitePlan((prev) => ({
+      ...prev,
+      fields: { ...prev.fields, SHFT: preset.plannedShiftEnd }
+    }));
+  };
+
   // Helper preset: Snap Expiry to shift boundary (17:30 / 23:00 / 09:00)
-  const handleSetShiftEnd = () => {
+  const handleSetShiftEnd = (explicitShift?: 'DAY' | 'EVENING' | 'NIGHT') => {
     let baseTime: Date;
     if (validFromD && validFromT) {
       baseTime = new Date(`${validFromD}T${validFromT.slice(0, 5)}`);
@@ -818,21 +1051,21 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
     const mins = baseTime.getHours() * 60 + baseTime.getMinutes();
     const baseDateStr = validFromD || new Date().toISOString().slice(0, 10);
 
-    if (mins >= 540 && mins < 1050) {
+    const shiftType =
+      explicitShift ||
+      (mins >= 540 && mins < 1050 ? 'DAY' : mins >= 1050 && mins < 1380 ? 'EVENING' : 'NIGHT');
+
+    if (shiftType === 'DAY') {
       // Day shift -> ends at 17:30 same day
       setValidToD(baseDateStr);
       setValidToT('17:30:00');
-    } else if (mins >= 1050 && mins < 1380) {
+    } else if (shiftType === 'EVENING') {
       // Evening shift -> ends at 23:00 same day
       setValidToD(baseDateStr);
       setValidToT('23:00:00');
     } else {
       // Night shift -> ends at 09:00 next day
-      let nextDate = baseDateStr;
-      if (mins >= 1380) {
-        const d = new Date(baseTime.getTime() + 24 * 3600 * 1000);
-        nextDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      }
+      const nextDate = getNextDateStr(baseDateStr);
       setValidToD(nextDate);
       setValidToT('09:00:00');
     }
@@ -899,7 +1132,24 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
   const [newControlCode, setNewControlCode] = useState('ELEC01');
   const [newControlDesc, setNewControlDesc] = useState('');
 
-  // New Isolation Point Inputs
+  // Inline Isolation Certificate Creation Modal State
+  const [showCreateIsoModal, setShowCreateIsoModal] = useState<boolean>(false);
+  const [newIsoDescription, setNewIsoDescription] = useState<string>('');
+  const [newIsoRemarks, setNewIsoRemarks] = useState<string>('');
+  const [newIsoPoints, setNewIsoPoints] = useState<Array<{
+    ReferenceType: 'EQUI' | 'FLOC';
+    ReferenceId: string;
+    IsolationPoint: string;
+    IsolType: string;
+    IsolMethod: string;
+    IsolatedState: string;
+    LockTagNo: string;
+    Remarks?: string;
+  }>>([]);
+  const [isCreatingIso, setIsCreatingIso] = useState<boolean>(false);
+  const [isolationTypes, setIsolationTypes] = useState<SapConfigRecord[]>(FALLBACK_CONFIG_DATA.ISOLATION_TYPE || []);
+  const [isolatedStates, setIsolatedStates] = useState<SapConfigRecord[]>(FALLBACK_CONFIG_DATA.ISOLATED_STATE || []);
+  const [isolMethods, setIsolMethods] = useState<SapConfigRecord[]>(FALLBACK_CONFIG_DATA.ISOL_METHOD || []);
 
   // SAP Live Config State (Dropdowns & F4 Value Help)
   const [shiftOptions, setShiftOptions] = useState<SapConfigRecord[]>(import.meta.env.DEV ? (FALLBACK_CONFIG_DATA.SHIFT || []) : []);
@@ -954,10 +1204,195 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
     debounceMs: 1200
   });
 
+  // Handler: Open Inline Create Isolation Certificate Modal
+  const handleOpenCreateIsoModal = () => {
+    const defaultDesc = jobDesc?.trim() ? `${jobDesc.trim()} - LOTO Boundary` : 'Plant Maintenance Isolation Boundary';
+    const defaultRemarks = areaLoc?.trim() ? `Work Area: ${areaLoc.trim()}` : (werks ? `Plant ${werks}` : '');
+    const refType = equnr?.trim() ? 'EQUI' : (tplnr?.trim() ? 'FLOC' : 'EQUI');
+    const refId = equnr?.trim() || tplnr?.trim() || '10000001';
+    const defaultPoint = equnr?.trim() ? `${equnr.trim()}-ISO-01` : 'POINT-01';
+
+    setNewIsoDescription(defaultDesc);
+    setNewIsoRemarks(defaultRemarks);
+    setNewIsoPoints([
+      {
+        ReferenceType: refType,
+        ReferenceId: refId,
+        IsolationPoint: defaultPoint,
+        IsolType: isolationTypes[0]?.Config_Code || 'ELEC',
+        IsolMethod: isolMethods[0]?.Config_Code || 'CB_RIRO',
+        IsolatedState: isolatedStates.find(s => s.Config_Code === 'LOCKED')?.Config_Code || isolatedStates[0]?.Config_Code || 'LOCKED',
+        LockTagNo: 'LT-01',
+        Remarks: ''
+      }
+    ]);
+    setShowCreateIsoModal(true);
+  };
+
+  const handleAddIsoPoint = () => {
+    const nextIdx = newIsoPoints.length + 1;
+    const refType = equnr?.trim() ? 'EQUI' : (tplnr?.trim() ? 'FLOC' : 'EQUI');
+    const refId = equnr?.trim() || tplnr?.trim() || '10000001';
+    setNewIsoPoints((prev) => [
+      ...prev,
+      {
+        ReferenceType: refType,
+        ReferenceId: refId,
+        IsolationPoint: `POINT-0${nextIdx}`,
+        IsolType: isolationTypes[0]?.Config_Code || 'ELEC',
+        IsolMethod: isolMethods[0]?.Config_Code || 'CB_RIRO',
+        IsolatedState: isolatedStates.find(s => s.Config_Code === 'LOCKED')?.Config_Code || isolatedStates[0]?.Config_Code || 'LOCKED',
+        LockTagNo: `LT-0${nextIdx}`,
+        Remarks: ''
+      }
+    ]);
+  };
+
+  const handleRemoveIsoPoint = (idx: number) => {
+    if (newIsoPoints.length <= 1) return;
+    setNewIsoPoints((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleUpdateIsoPoint = (idx: number, field: string, val: string) => {
+    setNewIsoPoints((prev) =>
+      prev.map((pt, i) => (i === idx ? { ...pt, [field]: val } : pt))
+    );
+  };
+
+  const handleSubmitCreateIso = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newIsoDescription.trim()) {
+      toast.warning('Please enter an isolation certificate description.', { title: 'Mandatory Field' });
+      return;
+    }
+    if (newIsoPoints.length === 0) {
+      toast.warning('Please add at least one isolation point.', { title: 'Isolation Point Missing' });
+      return;
+    }
+    for (let i = 0; i < newIsoPoints.length; i++) {
+      const pt = newIsoPoints[i];
+      if (!pt.IsolationPoint.trim() || !pt.ReferenceId.trim()) {
+        toast.warning(`Please provide Isolation Point name and Reference ID for point #${i + 1}.`, { title: 'Point Incomplete' });
+        return;
+      }
+      if (!pt.LockTagNo.trim()) {
+        toast.warning(`Please enter Danger Lock / Tag No for point #${i + 1}.`, { title: 'Lock Tag Missing' });
+        return;
+      }
+    }
+
+    setIsCreatingIso(true);
+    try {
+      const payload: Partial<SapIsolationHeader> = {
+        PermitNo: '', // Will be linked automatically upon permit submission
+        description: newIsoDescription.trim(),
+        Remarks: newIsoRemarks.trim(),
+        _Item: newIsoPoints.map((p) => ({
+          ReferenceType: p.ReferenceType || 'EQUI',
+          ReferenceId: p.ReferenceId.trim(),
+          IsolationPoint: p.IsolationPoint.trim().toUpperCase(),
+          IsolType: p.IsolType,
+          IsolMethod: p.IsolMethod,
+          IsolatedState: p.IsolatedState,
+          DeIsolatedState: '',
+          LockTagNo: p.LockTagNo.trim().toUpperCase(),
+          Remarks: p.Remarks ? p.Remarks.trim() : ''
+        }))
+      };
+
+      const result = await isolationApi.create(payload);
+      if (!result?.IsolationNo) {
+        throw new Error('SAP did not return an Isolation Certificate Number.');
+      }
+
+      setIsolationNo(result.IsolationNo);
+      setAvailableIsolations((prev) => Array.from(new Set([result.IsolationNo, ...prev])));
+
+      if (result._Item && result._Item.length > 0) {
+        setIsolations(result._Item as unknown as IsolationRecord[]);
+      }
+
+      toast.success(
+        `Isolation Certificate ${result.IsolationNo} successfully registered in SAP database!`,
+        { title: 'Isolation Registered & Linked', duration: 6000 }
+      );
+      setShowCreateIsoModal(false);
+    } catch (err: any) {
+      console.error('[PermitCreateModule] Failed to create isolation certificate:', err);
+      toast.error(
+        err?.message || 'Failed to register isolation certificate in SAP.',
+        { title: 'Isolation Registration Error' }
+      );
+    } finally {
+      setIsCreatingIso(false);
+    }
+  };
+
+  const getCurrentDraftPayload = () => ({
+    activeTab,
+    workSelection,
+    isBlankPermit,
+    permitType,
+    sitePlan,
+    aufnr,
+    qmnum,
+    auart,
+    personResp,
+    plannerGroup,
+    pmBasicStartD,
+    pmBasicFinishD,
+    pmFinalDueD,
+    revision,
+    priority,
+    assembly,
+    equnr,
+    tplnr,
+    werks,
+    arbpl,
+    areaLoc,
+    jobDesc,
+    execAgency,
+    execDept,
+    execPlant,
+    supvName,
+    supvPhone,
+    safetyOfficer,
+    shift,
+    personsQty,
+    validFromD,
+    validFromT,
+    validToD,
+    validToT,
+    gasTestFreqHr,
+    creatorComment,
+    isolationRequired,
+    gasTestRequired,
+    isolationRefType,
+    isolationNo,
+    workers,
+    ppeItems,
+    safetyChecklist,
+    hazards,
+    isolations,
+    categoryAnswers
+  });
+
+  const handleJumpToFullIsolationWorkspace = () => {
+    saveDraft(getCurrentDraftPayload());
+    toast.info('Permit draft saved. Opening full Isolation Workspace...', { title: 'Draft Saved' });
+    setShowCreateIsoModal(false);
+    if (onNavigateModule) {
+      onNavigateModule('create-isolation');
+    } else if (onBack) {
+      onBack();
+    }
+  };
+
   // Auto-save form draft to localStorage whenever fields change
   useEffect(() => {
     const hasStarted = Boolean(
       workSelection ||
+      isBlankPermit ||
       permitType ||
       aufnr ||
       jobDesc ||
@@ -973,56 +1408,11 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
 
     if (!hasStarted) return;
 
-    saveDraft({
-      activeTab,
-      workSelection,
-      permitType,
-      sitePlan,
-      aufnr,
-      qmnum,
-      auart,
-      personResp,
-      plannerGroup,
-      pmBasicStartD,
-      pmBasicFinishD,
-      pmFinalDueD,
-      revision,
-      priority,
-      assembly,
-      equnr,
-      tplnr,
-      werks,
-      arbpl,
-      areaLoc,
-      jobDesc,
-      execAgency,
-      execDept,
-      execPlant,
-      supvName,
-      supvPhone,
-      safetyOfficer,
-      shift,
-      personsQty,
-      validFromD,
-      validFromT,
-      validToD,
-      validToT,
-      gasTestFreqHr,
-      creatorComment,
-      isolationRequired,
-      gasTestRequired,
-      isolationRefType,
-      isolationNo,
-      workers,
-      ppeItems,
-      safetyChecklist,
-      hazards,
-      isolations,
-      categoryAnswers
-    });
+    saveDraft(getCurrentDraftPayload());
   }, [
     activeTab,
     workSelection,
+    isBlankPermit,
     permitType,
     sitePlan,
     aufnr,
@@ -1074,6 +1464,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
     if (!draft) return;
     if (draft.activeTab) setActiveTab(draft.activeTab);
     if (draft.workSelection) setWorkSelection(draft.workSelection);
+    if (typeof draft.isBlankPermit === 'boolean') setIsBlankPermit(draft.isBlankPermit);
     if (draft.permitType) setPermitType(draft.permitType);
     if (draft.sitePlan) setSitePlan(draft.sitePlan);
     if (draft.aufnr) setAufnr(draft.aufnr);
@@ -1096,10 +1487,10 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
     if (draft.execAgency) setExecAgency(draft.execAgency);
     if (draft.execPlant) setExecPlant(draft.execPlant);
     if (draft.execDept) {
-      if (draft.execDept.includes(' - ') && !draft.execPlant) {
-        const parts = draft.execDept.split(' - ');
-        setExecPlant(parts[0].trim());
-        setExecDept(parts[1].trim());
+      if (!draft.execPlant) {
+        const parsed = parseCombinedExecutionTarget(draft.execDept);
+        if (parsed.plant) setExecPlant(parsed.plant);
+        setExecDept(parsed.dept);
       } else {
         setExecDept(draft.execDept);
       }
@@ -1449,11 +1840,22 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
       toast.error(errMsg, { title: 'Isolation Registry' });
       setNotificationBanner({ type: 'error', message: errMsg });
     });
+    configApi.fetchIsolationTypeConfig().then((data) => {
+      if (data?.length) setIsolationTypes(data);
+    }).catch(() => {});
+    configApi.fetchIsolatedStateConfig().then((data) => {
+      if (data?.length) setIsolatedStates(data);
+    }).catch(() => {});
+    configApi.fetchIsolMethodConfig().then((data) => {
+      if (data?.length) setIsolMethods(data);
+    }).catch(() => {});
   }, []);
+
+  const hasWorkScope = Boolean(workSelection || isBlankPermit);
 
   // 3. Overall Readiness Completion Percentage
   const baseCompletionPercentage = useMemo(() => {
-    if (!workSelection) return 0;
+    if (!hasWorkScope) return 0;
     let score = 0;
     if (jobDesc && werks) score += 20;
     if (workers.length > 0) score += 20;
@@ -1461,22 +1863,27 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
     if (hazards.length > 0) score += 20;
     if (validFromD && validToD && supvName) score += 20;
     return score;
-  }, [workSelection, jobDesc, werks, workers, ppeItems, hazards, validFromD, validToD, supvName]);
+  }, [hasWorkScope, jobDesc, werks, workers, ppeItems, hazards, validFromD, validToD, supvName]);
+
+  const resetPreparationForNewContext = () => {
+    // A different job or blank context must not inherit site-specific preparation or JSA evidence.
+    setSitePlan(emptySitePlan()); setPermitType('');
+    setIsolationRequired(''); setGasTestRequired(''); setExecDept(''); setExecPlant('');
+    setWorkers([]); setPersonsQty(0); setHazards([]); setIsolations([]);
+    setPpeItems([]); setSafetyChecklist([]); setIsolationNo('');
+    setCategoryQuestions({}); setCategoryAnswers({}); setActiveChecklistPermitType(''); setIsChecklistModalOpen(false);
+    setValidFromD(''); setValidFromT(''); setValidToD(''); setValidToT('');
+  };
 
   // The first step owns reference selection; clear absent fields to avoid stale order linkage.
   const handleWorkSelected = (selection: WorkSelection) => {
     const selectionKey = `${selection.reference.ReferenceSource}:${referenceId(selection.source, selection.reference)}`;
     if (previousWorkKey.current && previousWorkKey.current !== selectionKey) {
-      // A different job must not inherit site-specific preparation or JSA evidence.
-      setSitePlan(emptySitePlan()); setPermitType('');
-      setIsolationRequired(''); setGasTestRequired(''); setExecDept(''); setExecPlant('');
-      setWorkers([]); setPersonsQty(0); setHazards([]); setIsolations([]);
-      setPpeItems([]); setSafetyChecklist([]); setIsolationNo('');
-      setCategoryQuestions({}); setCategoryAnswers({}); setActiveChecklistPermitType(''); setIsChecklistModalOpen(false);
-      setValidFromD(''); setValidFromT(''); setValidToD(''); setValidToT('');
+      resetPreparationForNewContext();
     }
     previousWorkKey.current = selectionKey;
     const ref = toPermitReferenceFields(selection.reference);
+    setIsBlankPermit(false);
     setWorkSelection(selection);
     setAufnr(ref.Aufnr || '');
     setQmnum(ref.Qmnum || '');
@@ -1484,7 +1891,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
     setJobDesc(ref.JobDesc);
     setEqunr(ref.Equnr || '');
     setTplnr(ref.Tplnr || '');
-    setWerks(ref.Werks || user?.plant || '');
+    setWerks(ref.Werks || DEFAULT_PLANT_CODE);
     setArbpl(ref.Arbpl || '');
     setAreaLoc(ref.AreaLoc || ref.LocationDesc || '');
     setAssembly('');
@@ -1495,9 +1902,50 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
     setPmBasicStartD(ref.PmBasicStartD || '');
     setPmBasicFinishD('');
     setPmFinalDueD('');
-    setExecDept('');
+    // Pre-populate Execution Target from Work Center description (if available); user may override via dropdown
+    setExecDept(normalizeWorkCenterTarget(ref.WorkCenterDesc));
     setExecPlant('');
     setCreatorComment(selection.category + ' work · ' + selection.source + ' ' + referenceId(selection.source, selection.reference));
+    setSubmissionResponse(null);
+    setNotificationBanner(null);
+    setActiveTab('general');
+  };
+
+  // Start a standalone permit without SAP Notification, Maintenance Order, or Shutdown reference
+  const handleStartBlankPermit = () => {
+    const switchingFromOtherWork = Boolean(previousWorkKey.current && previousWorkKey.current !== 'BLANK');
+    if (switchingFromOtherWork) {
+      resetPreparationForNewContext();
+    }
+    if (switchingFromOtherWork || !isBlankPermit) {
+      setEqunr('');
+      setTplnr('');
+      setArbpl('');
+      setAreaLoc('');
+      setJobDesc('');
+      setAssembly('');
+      setPriority('');
+      setRevision('');
+      setPlannerGroup('');
+      setPmBasicStartD('');
+      setPmBasicFinishD('');
+      setPmFinalDueD('');
+      setExecDept('');
+      setExecPlant('');
+      setWerks(DEFAULT_PLANT_CODE);
+    } else if (!werks.trim()) {
+      setWerks(DEFAULT_PLANT_CODE);
+    }
+    previousWorkKey.current = 'BLANK';
+    setWorkSelection(null);
+    setIsBlankPermit(true);
+    setAufnr('');
+    setQmnum('');
+    setAuart('');
+    setPersonResp(user?.id || '');
+    setCreatorComment((prev) =>
+      !switchingFromOtherWork && isBlankPermit && prev.trim() ? prev : BLANK_PERMIT_COMMENT
+    );
     setSubmissionResponse(null);
     setNotificationBanner(null);
     setActiveTab('general');
@@ -1561,10 +2009,10 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
 
   const validateTab = (tab: TabKey): TabValidationResult => {
     if (tab === 'work') {
-      if (!workSelection) {
+      if (!hasWorkScope) {
         return {
           valid: false,
-          message: 'Please select a PM maintenance order or notification to begin.',
+          message: 'Please select a PM maintenance order or notification, or choose Create Blank Permit to begin.',
           fieldId: 'field-work-selection',
           targetTab: 'work'
         };
@@ -1576,6 +2024,14 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
           valid: false,
           message: 'Permit Category is mandatory. Select the primary work category.',
           fieldId: 'field-permit-type',
+          targetTab: 'general'
+        };
+      }
+      if (!werks.trim()) {
+        return {
+          valid: false,
+          message: 'Plant (Werks) is mandatory. Select the SAP plant code.',
+          fieldId: 'field-werks',
           targetTab: 'general'
         };
       }
@@ -1657,7 +2113,13 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
           targetTab: 'general'
         };
       }
-      if (filteredPlantOptions.length > 0 && !execPlant.trim()) {
+      if (isSubPlantRequiredForExecutionTarget({
+        execDept,
+        execPlant,
+        workCenterDesc: workSelection?.reference?.WorkCenterDesc,
+        filteredPlantCount: filteredPlantOptions.length,
+        revisionExecDept: revisionPermit?.ExecDept
+      })) {
         return {
           valid: false,
           message: `Executing Sub Working Plant is mandatory for ${execDept}. Select a sub working plant.`,
@@ -2343,15 +2805,15 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
   ]);
 
   const requestPreview = useMemo(() => {
-    try { return { body: preparePermitCreate(fullPayload), error: '' }; }
+    try { return { body: preparePermitCreate(fullPayload, { allowBlankReference: isBlankPermit }), error: '' }; }
     catch (error) { return { body: null, error: error instanceof Error ? error.message : 'Complete the required details.' }; }
-  }, [fullPayload]);
+  }, [fullPayload, isBlankPermit]);
 
   // Dynamically analyzes all prerequisites, step validations, and preparePermitCreate checks to pinpoint the exact blocking cause
   const blockingValidation = useMemo((): { message: string; target: ValidationTarget } | null => {
-    if (!workSelection) {
+    if (!hasWorkScope) {
       return {
-        message: 'Select a PM maintenance order or notification to begin permit creation.',
+        message: 'Select a PM maintenance order or notification, or choose Create Blank Permit to begin.',
         target: getValidationTarget('Select a real SAP order or notification.', 'field-work-selection', 'work')
       };
     }
@@ -2373,9 +2835,10 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
     }
     return null;
   }, [
-    workSelection,
+    hasWorkScope,
     requestPreview.error,
     permitType,
+    werks,
     jobDesc,
     areaLoc,
     tplnr,
@@ -2397,14 +2860,14 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
     hazards
   ]);
 
-  const completionPercentage = !workSelection ? 0 : (blockingValidation || requestPreview.error) ? Math.min(baseCompletionPercentage, 90) : 100;
+  const completionPercentage = !hasWorkScope ? 0 : (blockingValidation || requestPreview.error) ? Math.min(baseCompletionPercentage, 90) : 100;
 
   // 12. Submit Deep Insert to SAP
   const handleSubmitDeepInsert = async () => {
     if (submissionLock.current || submissionResponse || creationUncertain) return;
-    if (!workSelection) {
-      toast.warning('Select a work reference before submitting the permit.', { title: 'Work Reference Required' });
-      setNotificationBanner({ type: 'error', message: 'Select a work reference before submitting the permit.' });
+    if (!hasWorkScope) {
+      toast.warning('Select a work reference or start a blank permit before submitting.', { title: 'Work Scope Required' });
+      setNotificationBanner({ type: 'error', message: 'Select a work reference or start a blank permit before submitting.' });
       jumpToField('field-work-selection', 'work');
       return;
     }
@@ -2434,7 +2897,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
     }
 
     try {
-      preparePermitCreate(fullPayload);
+      preparePermitCreate(fullPayload, { allowBlankReference: isBlankPermit });
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Check the permit details.';
       toast.warning(msg, { title: 'Mandatory Field Missing' });
@@ -2453,7 +2916,11 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
         const updates: Partial<PermitInfoRecord> = {
           JobDesc: jobDesc,
           AreaLoc: areaLoc,
-          ExecDept: execDept,
+          ExecDept: formatExecutionTarget(
+            execPlant,
+            execDept,
+            deptOptions.find(d => d.Config_Desc === execDept || d.Config_Code === execDept)?.Config_Code
+          ),
           ExecAgency: execAgency,
           SupvName: supvName,
           SupvPhone: supvPhone,
@@ -2489,7 +2956,9 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
     }
 
     try {
-      const response = await permitCreateApi.createPermitDeepInsert(fullPayload);
+      const response = await permitCreateApi.createPermitDeepInsert(fullPayload, {
+        allowBlankReference: isBlankPermit
+      });
       clearDraft();
       const mergedResponse = {
         ...fullPayload,
@@ -2733,6 +3202,20 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                   Change
                 </button>
               </div>
+            ) : isBlankPermit ? (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-mono">
+                <span className="material-symbols-outlined text-[15px] text-amber-700">description</span>
+                <span className="font-bold text-amber-800">Blank Permit</span>
+                <span className="text-amber-700/80 hidden sm:inline">· No SAP Ref</span>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('work')}
+                  className="ml-1 text-[11px] text-[#006398] hover:underline font-bold"
+                  title="Link an SAP order or notification instead"
+                >
+                  Link Ref
+                </button>
+              </div>
             ) : (
               <span className="px-2.5 py-1 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-mono font-medium flex items-center gap-1">
                 <span className="material-symbols-outlined text-[14px]">info</span>
@@ -2803,7 +3286,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
             {stepsList.map((st, idx) => {
               const isCurrent = activeTab === st.key;
               const isCompleted = idx < stepsList.findIndex((s) => s.key === activeTab);
-              const isDisabled = st.key !== 'work' && !workSelection;
+              const isDisabled = st.key !== 'work' && !hasWorkScope;
 
               return (
                 <button
@@ -3053,9 +3536,19 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
         {/* Tab Content Panes */}
         <fieldset disabled={isSubmitting || creationUncertain} className="p-3.5 sm:p-5 lg:p-6 min-w-0">
           {activeTab === 'work' && (
-            <PermitWorkSelectionStep selection={workSelection} client={user?.client}
-              onInvalidate={() => { setWorkSelection(null); setSubmissionResponse(null); setNotificationBanner(null); }}
-              onContinue={handleWorkSelected} />
+            <PermitWorkSelectionStep
+              selection={workSelection}
+              client={user?.client}
+              isBlankPermit={isBlankPermit}
+              onStartBlankPermit={handleStartBlankPermit}
+              onInvalidate={() => {
+                setWorkSelection(null);
+                setIsBlankPermit(false);
+                setSubmissionResponse(null);
+                setNotificationBanner(null);
+              }}
+              onContinue={handleWorkSelected}
+            />
           )}
           {activeTab === 'procedure' && (
             <SiteProcedureStep
@@ -3341,13 +3834,24 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                 theme="slate"
                 sectionTag="SECTION 2.2"
                 title="SAP Maintenance Order & Notification Linkage"
-                subtitle="Master data linked directly from SAP S/4HANA (Read-only master data)."
+                subtitle={
+                  isBlankPermit && !workSelection
+                    ? 'Blank permit active (no PM order, notification, or shutdown reference).'
+                    : 'Master data linked directly from SAP S/4HANA (Read-only master data).'
+                }
                 icon="construction"
                 badge={
-                  <span className="px-2.5 py-0.5 rounded-md font-mono text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[12px]">lock</span>
-                    SAP Master Data
-                  </span>
+                  isBlankPermit && !workSelection ? (
+                    <span className="px-2.5 py-0.5 rounded-md font-mono text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[12px]">description</span>
+                      Blank Reference
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-md font-mono text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[12px]">lock</span>
+                      SAP Master Data
+                    </span>
+                  )
                 }
               >
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 font-sans text-xs">
@@ -3360,7 +3864,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                       type="text"
                       value={aufnr}
                       readOnly
-                      placeholder="e.g. 400100001"
+                      placeholder={isBlankPermit ? '— (Blank)' : 'e.g. 400100001'}
                       className="ptw-input font-mono bg-slate-50 text-slate-700 cursor-not-allowed"
                     />
                   </div>
@@ -3374,7 +3878,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                       type="text"
                       value={qmnum}
                       readOnly
-                      placeholder="e.g. 100100000001"
+                      placeholder={isBlankPermit ? '— (Blank)' : 'e.g. 100100000001'}
                       className="ptw-input font-mono bg-slate-50 text-slate-700 cursor-not-allowed"
                     />
                   </div>
@@ -3388,6 +3892,7 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                       type="text"
                       value={auart}
                       readOnly
+                      placeholder={isBlankPermit ? '— (Blank)' : ''}
                       className="ptw-input font-mono bg-slate-50 text-slate-700 cursor-not-allowed"
                     />
                   </div>
@@ -3419,12 +3924,18 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                       <label className="ptw-label">
                         Plant (Werks) <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="text"
+                      <select
+                        id="field-werks"
                         value={werks}
                         onChange={(e) => setWerks(e.target.value)}
-                        className="ptw-input font-mono"
-                      />
+                        className="ptw-select font-mono"
+                      >
+                        {buildPlantSelectOptions(werks).map((code) => (
+                          <option key={code} value={code}>
+                            {code}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     <div>
@@ -3551,6 +4062,8 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                       <ExecutionTargetNestedDropdown
                         execDept={execDept}
                         execPlant={execPlant}
+                        workCenterDesc={workSelection?.reference?.WorkCenterDesc}
+                        workCenterCode={arbpl}
                         onChange={(dept, plant) => {
                           setExecDept(dept);
                           setExecPlant(plant);
@@ -3559,7 +4072,9 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                         plantOptions={plantOptions}
                       />
                       <span className="text-[10px] text-slate-500 mt-1 block">
-                        Click to open department list; hover or click each department to select its sub working plant.
+                        {workSelection?.reference?.WorkCenterDesc
+                          ? 'Auto-filled from Work Center description; click to override from Department & Sub Working Plant dropdown.'
+                          : 'Click to open department list; hover or click each department to select its sub working plant.'}
                       </span>
                     </div>
 
@@ -3594,11 +4109,22 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
 
                   {/* Execution Target Mapping Preview Strip */}
                   {execDept && (() => {
+                    const wcDesc = workSelection?.reference?.WorkCenterDesc;
+                    const usingWorkCenter = isWorkCenterExecutionTarget(execDept, execPlant, wcDesc);
                     const matchedDeptCode = deptOptions.find(d => d.Config_Desc === execDept || d.Config_Code === execDept)?.Config_Code || execDept;
+                    const needsPlant = isSubPlantRequiredForExecutionTarget({
+                      execDept,
+                      execPlant,
+                      workCenterDesc: wcDesc,
+                      filteredPlantCount: filteredPlantOptions.length,
+                      revisionExecDept: revisionPermit?.ExecDept
+                    });
                     const formattedTarget = execPlant
                       ? formatExecutionTarget(execPlant, execDept, matchedDeptCode)
-                      : `${execDept} (Select sub working plant)`;
-                    const targetLen = execPlant ? formattedTarget.length : execDept.length;
+                      : needsPlant
+                      ? `${execDept} (Select sub working plant)`
+                      : formatExecutionTarget('', execDept, matchedDeptCode);
+                    const targetLen = needsPlant ? execDept.length : formattedTarget.length;
 
                     return (
                       <div className="bg-gradient-to-r from-blue-50 via-slate-50 to-blue-50/50 border border-blue-200/80 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
@@ -3606,7 +4132,9 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                           <span className="material-symbols-outlined text-[18px] text-[#006398]">domain_verification</span>
                           <div>
                             <span className="text-[11px] font-bold text-slate-700 block">
-                              Executing Target (Plant — Department):
+                              {usingWorkCenter
+                                ? `Executing Target (Work Center${arbpl ? ` ${arbpl}` : ''}):`
+                                : 'Executing Target (Plant — Department):'}
                             </span>
                             <span className="font-mono text-xs font-bold text-[#006398]">
                               {formattedTarget}
@@ -3614,6 +4142,11 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                           </div>
                         </div>
                         <div className="flex items-center gap-2 text-[10px] font-mono text-slate-500 self-end sm:self-auto">
+                          {usingWorkCenter && (
+                            <span className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200 font-sans font-semibold">
+                              From Work Center
+                            </span>
+                          )}
                           <span className="bg-white px-2 py-0.5 rounded border border-slate-200">
                             {targetLen}/40 chars
                           </span>
@@ -3760,24 +4293,165 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                 subtitle="Dahej complex site timings (IST). Standard permits are valid for maximum 8 hours or shift boundary."
                 icon="schedule"
               >
+                {/* Quick Shift Presets for Validity Window matching GFL Shift Definitions */}
+                <div className="mb-3.5 p-2.5 rounded-xl bg-linear-to-r from-amber-50/70 via-slate-50 to-indigo-50/70 border border-amber-200/60 shadow-2xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-1.5 text-slate-700">
+                      <span className="material-symbols-outlined text-[16px] text-amber-600">tune</span>
+                      <span className="font-mono text-[11px] font-bold uppercase tracking-wider">Shift Presets (Validity Window)</span>
+                      <span className="text-[10px] text-slate-500 hidden sm:inline">— 1-click apply start & expiry</span>
+                    </div>
+                    {/* Today / Tomorrow Target Toggle */}
+                    <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-slate-200 shadow-2xs text-[10px] font-bold">
+                      <span className="px-1.5 text-slate-400 font-normal">Target:</span>
+                      <button
+                        type="button"
+                        onClick={() => setPresetTargetDay('TODAY')}
+                        className={`px-2 py-0.5 rounded transition ${
+                          presetTargetDay === 'TODAY'
+                            ? 'bg-[#006398] text-white shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                        }`}
+                      >
+                        Today
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPresetTargetDay('TOMORROW')}
+                        className={`px-2 py-0.5 rounded transition ${
+                          presetTargetDay === 'TOMORROW'
+                            ? 'bg-[#006398] text-white shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                        }`}
+                      >
+                        Tomorrow
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 3 Shift Cards styled to match Dahej Complex Shift Specifications */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {/* Day Shift */}
+                    <button
+                      type="button"
+                      onClick={() => handleApplyShiftPreset('DAY')}
+                      className={`p-2 rounded-lg border text-left transition flex flex-col justify-between group hover:shadow-sm ${
+                        validFromT?.startsWith('09:00') && (validToT?.startsWith('17:00') || validToT?.startsWith('17:30'))
+                          ? 'bg-amber-100/90 border-amber-300 ring-2 ring-amber-400/30'
+                          : 'bg-white border-slate-200 hover:border-amber-300 hover:bg-amber-50/50'
+                      }`}
+                      title={`Apply Day Shift (${presetTargetDay === 'TOMORROW' ? 'Tomorrow' : 'Today'} 09:00 to 17:00)`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-[11px] text-amber-950 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px] text-amber-600">wb_sunny</span>
+                          <span>9:00 Hrs to 17:30 Hrs</span>
+                        </span>
+                        <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-200/80 text-amber-900">8h Max</span>
+                      </div>
+                      <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500">
+                        <span className="font-semibold text-slate-700 group-hover:text-amber-900">Day / General Shift</span>
+                        <span className="text-amber-700 font-mono text-[9px]">09:00 → 17:00</span>
+                      </div>
+                    </button>
+
+                    {/* Evening Shift */}
+                    <button
+                      type="button"
+                      onClick={() => handleApplyShiftPreset('EVENING')}
+                      className={`p-2 rounded-lg border text-left transition flex flex-col justify-between group hover:shadow-sm ${
+                        validFromT?.startsWith('17:30') && validToT?.startsWith('23:00')
+                          ? 'bg-indigo-100/90 border-indigo-300 ring-2 ring-indigo-400/30'
+                          : 'bg-white border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50'
+                      }`}
+                      title={`Apply Evening Shift (${presetTargetDay === 'TOMORROW' ? 'Tomorrow' : 'Today'} 17:30 to 23:00)`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-[11px] text-indigo-950 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px] text-indigo-600">flare</span>
+                          <span>17:30 Hrs to 23:00 Hrs</span>
+                        </span>
+                        <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-indigo-200/80 text-indigo-900">5.5h</span>
+                      </div>
+                      <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500">
+                        <span className="font-semibold text-slate-700 group-hover:text-indigo-900">Evening Shift</span>
+                        <span className="text-indigo-700 font-mono text-[9px]">17:30 → 23:00</span>
+                      </div>
+                    </button>
+
+                    {/* Night Shift */}
+                    <button
+                      type="button"
+                      onClick={() => handleApplyShiftPreset('NIGHT')}
+                      className={`p-2 rounded-lg border text-left transition flex flex-col justify-between group hover:shadow-sm ${
+                        validFromT?.startsWith('23:00') && (validToT?.startsWith('07:00') || validToT?.startsWith('09:00'))
+                          ? 'bg-purple-100/90 border-purple-300 ring-2 ring-purple-400/30'
+                          : 'bg-white border-slate-200 hover:border-purple-300 hover:bg-purple-50/50'
+                      }`}
+                      title={`Apply Night Shift (${presetTargetDay === 'TOMORROW' ? 'Tomorrow' : 'Tonight'} 23:00 to 07:00 next day)`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-[11px] text-purple-950 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px] text-purple-600">bedtime</span>
+                          <span>23:00 Hrs to 09:00 Hrs</span>
+                        </span>
+                        <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-purple-200/80 text-purple-900">8h Max</span>
+                      </div>
+                      <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500">
+                        <span className="font-semibold text-slate-700 group-hover:text-purple-900">Night Shift</span>
+                        <span className="text-purple-700 font-mono text-[9px]">23:00 → 07:00</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 font-sans text-xs">
                   {/* Valid From Group (5 cols) */}
                   <div className="md:col-span-5 p-3 rounded-xl bg-slate-50/80 border border-slate-200/80 space-y-2">
-                    <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center justify-between gap-1 flex-wrap">
                       <span className="font-mono text-[11px] font-bold text-slate-700 flex items-center gap-1">
                         <span className="material-symbols-outlined text-[15px] text-[#006398]">play_circle</span>
                         <span>Permit Start Window (Valid From)</span>
                         <span className="text-red-500 font-bold">*</span>
                       </span>
-                      <button
-                        type="button"
-                        onClick={handleSetStartNow}
-                        className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#006398]/10 text-[#006398] hover:bg-[#006398]/20 transition flex items-center gap-1 shrink-0"
-                        title="Set to Current Date & Time (IST)"
-                      >
-                        <span className="material-symbols-outlined text-[12px]">schedule</span>
-                        <span>Now</span>
-                      </button>
+                      <div className="flex items-center gap-1 shrink-0 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={handleSetStartNow}
+                          className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#006398]/10 text-[#006398] hover:bg-[#006398]/20 transition flex items-center gap-1 shrink-0"
+                          title="Set to Current Date & Time (IST)"
+                        >
+                          <span className="material-symbols-outlined text-[12px]">schedule</span>
+                          <span>Now</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSetStartTomorrowGeneral}
+                          className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 hover:bg-amber-200 transition flex items-center gap-1 shrink-0 border border-amber-200/80 shadow-2xs"
+                          title="Set Start to Tomorrow at 09:00 (General / Day Shift)"
+                        >
+                          <span className="material-symbols-outlined text-[12px]">wb_sunny</span>
+                          <span>Tmrw 09:00</span>
+                        </button>
+                        <select
+                          aria-label="Shift start preset selection"
+                          value=""
+                          onChange={(e) => {
+                            handleShiftStartSelect(e.target.value);
+                            e.target.value = '';
+                          }}
+                          className="text-[10px] font-semibold bg-white border border-slate-200 rounded px-1.5 py-0.5 text-slate-600 hover:border-slate-300 focus:outline-hidden cursor-pointer"
+                          title="Select shift start preset"
+                        >
+                          <option value="" disabled>Shift Start...</option>
+                          <option value="TMRW_DAY">☀️ Tomorrow Day (09:00)</option>
+                          <option value="TODAY_DAY">☀️ Today Day (09:00)</option>
+                          <option value="TMRW_EVENING">🌅 Tomorrow Eve (17:30)</option>
+                          <option value="TODAY_EVENING">🌅 Today Eve (17:30)</option>
+                          <option value="TMRW_NIGHT">🌙 Tomorrow Night (23:00)</option>
+                          <option value="TODAY_NIGHT">🌙 Tonight Night (23:00)</option>
+                        </select>
+                      </div>
                     </div>
 
                     <div>
@@ -3795,13 +4469,13 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
 
                   {/* Valid To Group (5 cols) */}
                   <div className="md:col-span-5 p-3 rounded-xl bg-slate-50/80 border border-slate-200/80 space-y-2">
-                    <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center justify-between gap-1 flex-wrap">
                       <span className="font-mono text-[11px] font-bold text-slate-700 flex items-center gap-1">
                         <span className="material-symbols-outlined text-[15px] text-amber-600">stop_circle</span>
                         <span>Permit Expiry Window (Valid To)</span>
                         <span className="text-red-500 font-bold">*</span>
                       </span>
-                      <div className="flex items-center gap-1 shrink-0">
+                      <div className="flex items-center gap-1 shrink-0 flex-wrap">
                         <button
                           type="button"
                           onClick={handleSetPlus8Hours}
@@ -3813,13 +4487,30 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                         </button>
                         <button
                           type="button"
-                          onClick={handleSetShiftEnd}
+                          onClick={() => handleSetShiftEnd()}
                           className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 transition flex items-center gap-0.5"
                           title="Snap to shift end boundary (17:30 / 23:00 / 09:00)"
                         >
                           <span className="material-symbols-outlined text-[11px]">wb_twilight</span>
                           <span>Shift</span>
                         </button>
+                        <select
+                          aria-label="Shift expiry boundary selection"
+                          value=""
+                          onChange={(e) => {
+                            if (e.target.value === 'DAY') handleSetShiftEnd('DAY');
+                            else if (e.target.value === 'EVENING') handleSetShiftEnd('EVENING');
+                            else if (e.target.value === 'NIGHT') handleSetShiftEnd('NIGHT');
+                            e.target.value = '';
+                          }}
+                          className="text-[10px] font-semibold bg-white border border-slate-200 rounded px-1.5 py-0.5 text-slate-600 hover:border-slate-300 focus:outline-hidden cursor-pointer"
+                          title="Select specific shift end boundary"
+                        >
+                          <option value="" disabled>End...</option>
+                          <option value="DAY">☀️ Day End (17:30)</option>
+                          <option value="EVENING">🌅 Eve End (23:00)</option>
+                          <option value="NIGHT">🌙 Night End (09:00)</option>
+                        </select>
                       </div>
                     </div>
 
@@ -3975,34 +4666,83 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                     </div>
 
                     {(isolationRequired === 'X' || isolationRequired === 'Y') && (
-                      <div className="mt-3 pt-2.5 border-t border-amber-200/80 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="ptw-label text-[11px]">
-                            Isolation Certificate No <span className="text-red-500 font-bold">*</span>
-                          </label>
-                          <input
-                            id="field-isolation-no"
-                            type="text"
-                            list="available-isolations"
-                            placeholder="e.g. ISO0000012"
-                            value={isolationNo}
-                            onChange={(e) => setIsolationNo(e.target.value)}
-                            className="ptw-input font-mono text-xs"
-                          />
-                          <datalist id="available-isolations">
-                            {availableIsolations.map((no) => (
-                              <option key={no} value={no} />
-                            ))}
-                          </datalist>
+                      <div className="mt-3 pt-2.5 border-t border-amber-200/80 space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                          <div className="sm:col-span-7">
+                            <div className="flex items-center justify-between mb-1">
+                              <label htmlFor="field-isolation-no" className="ptw-label text-[11px] mb-0 flex items-center gap-1 font-bold">
+                                <span>Isolation Certificate No</span>
+                                <span className="text-red-500 font-bold">*</span>
+                              </label>
+                              {isolationNo && (
+                                <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded flex items-center gap-0.5">
+                                  <span className="material-symbols-outlined text-[12px]">verified</span>
+                                  <span>Linked</span>
+                                </span>
+                              )}
+                            </div>
+                            <div className="relative">
+                              <input
+                                id="field-isolation-no"
+                                type="text"
+                                list="available-isolations"
+                                placeholder="Select or type e.g. ISO0000012"
+                                value={isolationNo}
+                                onChange={(e) => setIsolationNo(e.target.value)}
+                                className="ptw-input font-mono text-xs w-full pr-7"
+                              />
+                              {isolationNo && (
+                                <button
+                                  type="button"
+                                  onClick={() => setIsolationNo('')}
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                                  title="Clear certificate"
+                                >
+                                  ✕
+                                </button>
+                              )}
+                            </div>
+                            <datalist id="available-isolations">
+                              {availableIsolations.map((no) => (
+                                <option key={no} value={no} />
+                              ))}
+                            </datalist>
+                          </div>
+
+                          <div className="sm:col-span-5 flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={handleOpenCreateIsoModal}
+                              className="w-full px-3 py-2 rounded-lg text-xs font-bold bg-[#006398] hover:bg-[#004e78] text-white shadow-2xs hover:shadow-xs transition flex items-center justify-center gap-1.5 shrink-0"
+                              title="Register a new isolation certificate and lock points directly in SAP"
+                            >
+                              <span className="material-symbols-outlined text-[15px]">lock_clock</span>
+                              <span>+ Create New Certificate</span>
+                            </button>
+                          </div>
                         </div>
-                        <div>
-                          <label className="ptw-label text-[11px]">Reference Type</label>
-                          <input
-                            type="text"
-                            value={isolationRefType}
-                            onChange={(e) => setIsolationRefType(e.target.value)}
-                            className="ptw-input font-mono text-xs"
-                          />
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="ptw-label text-[11px]">Reference Type</label>
+                            <input
+                              type="text"
+                              value={isolationRefType}
+                              onChange={(e) => setIsolationRefType(e.target.value)}
+                              className="ptw-input font-mono text-xs"
+                            />
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-500 font-normal block mb-1">Status / Guidance</span>
+                            <div className="p-2 bg-white rounded border border-slate-200 text-[10px] text-slate-600 flex items-center gap-1.5">
+                              <span className="material-symbols-outlined text-[14px] text-amber-600 shrink-0">info</span>
+                              <span className="leading-tight">
+                                {isolationNo
+                                  ? `Certificate ${isolationNo} will be auto-backlinked upon permit creation.`
+                                  : 'Select an existing certificate or click "+ Create New Certificate" to define lock points.'}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -4702,14 +5442,91 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
               subtitle="Prerequisite isolation and gas testing workflow guidelines."
               icon="lock"
             >
-              <div className="rounded-xl border border-sky-200 bg-sky-50/70 p-5 space-y-3 text-slate-700 text-xs sm:text-sm">
-                <h4 className="font-bold text-slate-900 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[#006398] text-[20px]">info</span>
-                  <span>Sequential SAP Clearance Requirements</span>
-                </h4>
-                <p>Create the permit first. If isolation is required, open Isolation Create with the returned permit number and add the physical points under the certificate. SAP assigns the certificate and item numbers.</p>
-                <p>Gas measurements are read from the backend. The gas module can finalize saved backend tests; the supplied service does not support entering new measurements.</p>
-                <p className="font-semibold text-[#006398]">All required checks must be approved in SAP before the permit progresses from INTD to CRTD.</p>
+              <div className="space-y-4">
+                {/* Active Isolation Certificate Preview */}
+                {(isolationRequired === 'X' || isolationRequired === 'Y') ? (
+                  isolationNo ? (
+                    <div className="rounded-xl border border-emerald-300 bg-emerald-50/70 p-4 space-y-2.5">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-emerald-700 text-[22px]">verified_user</span>
+                          <div>
+                            <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                              <span>Linked Isolation Certificate: {isolationNo}</span>
+                              <span className="px-2 py-0.2 rounded-full text-[10px] font-mono font-bold bg-emerald-200 text-emerald-900 border border-emerald-300">
+                                Ready in Form
+                              </span>
+                            </h4>
+                            <p className="text-[11px] text-slate-600">
+                              Physical lock/tag boundary is defined and will be automatically back-linked to Permit No on submission.
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleOpenCreateIsoModal}
+                          className="px-2.5 py-1 rounded text-xs font-bold border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs transition flex items-center gap-1"
+                        >
+                          <span className="material-symbols-outlined text-[14px]">edit_note</span>
+                          <span>Change / New</span>
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-emerald-200 text-xs">
+                        <div className="p-2 bg-white/80 rounded border border-emerald-100">
+                          <span className="text-[10px] text-slate-500 block">Certificate ID</span>
+                          <span className="font-mono font-bold text-slate-800">{isolationNo}</span>
+                        </div>
+                        <div className="p-2 bg-white/80 rounded border border-emerald-100">
+                          <span className="text-[10px] text-slate-500 block">Ref Type</span>
+                          <span className="font-mono font-bold text-slate-800">{isolationRefType || 'EQUI'}</span>
+                        </div>
+                        <div className="p-2 bg-white/80 rounded border border-emerald-100">
+                          <span className="text-[10px] text-slate-500 block">Isolation Points</span>
+                          <span className="font-mono font-bold text-slate-800">{isolations.length > 0 ? `${isolations.length} Registered` : '1+ Configured'}</span>
+                        </div>
+                        <div className="p-2 bg-white/80 rounded border border-emerald-100">
+                          <span className="text-[10px] text-slate-500 block">Initial Status</span>
+                          <span className="font-mono font-bold text-amber-700">INTD (Initiated)</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-amber-300 bg-amber-50/70 p-4 flex items-center justify-between gap-3 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-amber-600 text-[22px]">warning</span>
+                        <div>
+                          <h4 className="font-bold text-slate-900 text-sm">No Isolation Certificate Linked</h4>
+                          <p className="text-[11px] text-slate-600">
+                            Physical isolation is marked as required (LOTO) in Section 2.6, but no certificate is selected yet.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleOpenCreateIsoModal}
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#006398] text-white hover:bg-[#004e78] shadow-2xs transition flex items-center gap-1 shrink-0"
+                      >
+                        <span className="material-symbols-outlined text-[15px]">lock_clock</span>
+                        <span>Create Certificate Now</span>
+                      </button>
+                    </div>
+                  )
+                ) : (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex items-center gap-2 text-slate-600 text-xs">
+                    <span className="material-symbols-outlined text-slate-400 text-[20px]">check_circle</span>
+                    <span>Isolation (LOTO) is not required for this permit. Initial permit status will proceed directly to CRTD/APPR.</span>
+                  </div>
+                )}
+
+                <div className="rounded-xl border border-sky-200 bg-sky-50/70 p-5 space-y-3 text-slate-700 text-xs sm:text-sm">
+                  <h4 className="font-bold text-slate-900 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[#006398] text-[20px]">info</span>
+                    <span>Sequential SAP Clearance Requirements</span>
+                  </h4>
+                  <p>When physical isolation is required, physical lock and tag points must be registered under an isolation certificate. On permit creation, the certificate is automatically back-linked to the new permit number.</p>
+                  <p>Gas measurements are read from the backend. The gas module can finalize saved backend tests; the supplied service does not support entering new measurements.</p>
+                  <p className="font-semibold text-[#006398]">All required checks must be approved in SAP before the permit progresses from INTD to CRTD.</p>
+                </div>
               </div>
             </SectionCard>
           )}
@@ -4829,6 +5646,17 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
                 <div className="ptw-card p-5 border-slate-200 text-sm">
                   <h3 className="mb-3 font-display font-bold text-slate-900">Request Technical Summary</h3>
                   <dl className="grid gap-3.5 sm:grid-cols-2 text-xs">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                      <dt className="text-slate-500 font-medium">SAP Reference & Plant</dt>
+                      <dd className="mt-1 font-mono font-bold text-slate-900">
+                        {workSelection
+                          ? `${workSelection.source.toUpperCase()} ${referenceId(workSelection.source, workSelection.reference)}`
+                          : isBlankPermit
+                          ? 'Blank Permit (No SAP Ref)'
+                          : 'Not selected'}
+                        {werks ? ` · Plant ${werks}` : ''}
+                      </dd>
+                    </div>
                     <div className="p-3 bg-slate-50 rounded-xl border border-slate-100"><dt className="text-slate-500 font-medium">Job and Area</dt><dd className="mt-1 font-semibold text-slate-900">{jobDesc || 'Not entered'} · {areaLoc || 'Area required'}</dd></div>
                     <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                       <dt className="text-slate-500 font-medium">Primary Work Category (Section 2.1)</dt>
@@ -4969,7 +5797,11 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
             </span>
             <span className="text-slate-400">·</span>
             <span className="text-slate-500">
-              {workSelection ? `${workSelection.source} ${referenceId(workSelection.source, workSelection.reference)}` : 'Select work reference to begin'}
+              {workSelection
+                ? `${workSelection.source} ${referenceId(workSelection.source, workSelection.reference)}`
+                : isBlankPermit
+                ? 'Blank Permit (No SAP Ref)'
+                : 'Select work reference to begin'}
             </span>
           </div>
 
@@ -5079,6 +5911,277 @@ export const PermitCreateModule: React.FC<PermitCreateModuleProps> = ({ user, on
         onSave={handleSaveChecklist}
         onClose={() => setIsChecklistModalOpen(false)}
       />
+
+      {/* INLINE MODAL: Create & Register New Isolation Certificate (LOTO) */}
+      {showCreateIsoModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-iso-title"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn overflow-y-auto"
+        >
+          <div className="relative w-full max-w-3xl max-h-[92vh] flex flex-col bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto">
+            {/* Modal Header */}
+            <div className="px-5 py-4 bg-gradient-to-r from-rose-50 via-slate-50 to-amber-50 border-b border-slate-200 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center shadow-2xs shrink-0">
+                  <span className="material-symbols-outlined text-[20px]">lock_clock</span>
+                </div>
+                <div>
+                  <h3 id="modal-iso-title" className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                    <span>Register New Isolation Certificate (LOTO)</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-bold border border-rose-200">
+                      POST Isolation
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Define engineered zero-energy boundary and lock points. Registered certificate will be linked directly to this permit.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateIsoModal(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+                title="Close modal"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            {/* Modal Body - Scrollable */}
+            <form onSubmit={handleSubmitCreateIso} className="flex-1 overflow-y-auto p-5 space-y-4">
+              {/* Context Summary Pill */}
+              <div className="flex flex-wrap items-center gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-600 font-mono">
+                <span className="font-bold text-slate-700">Permit Context:</span>
+                <span className="px-2 py-0.5 rounded bg-white border border-slate-200">Plant: {werks || '1000'}</span>
+                {equnr && <span className="px-2 py-0.5 rounded bg-white border border-slate-200">Equip: {equnr}</span>}
+                {tplnr && <span className="px-2 py-0.5 rounded bg-white border border-slate-200">FLoc: {tplnr}</span>}
+                {areaLoc && <span className="px-2 py-0.5 rounded bg-white border border-slate-200">Area: {areaLoc}</span>}
+              </div>
+
+              {/* Certificate Scope Inputs */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    Description of Isolation <span className="text-red-500 font-bold">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={255}
+                    value={newIsoDescription}
+                    onChange={(e) => setNewIsoDescription(e.target.value)}
+                    placeholder="e.g. Pump motor electrical & valve isolation"
+                    className="ptw-input w-full text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    Isolation Scope / Remarks
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={255}
+                    value={newIsoRemarks}
+                    onChange={(e) => setNewIsoRemarks(e.target.value)}
+                    placeholder="e.g. Unit 100 MCC Overhaul"
+                    className="ptw-input w-full text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Points Builder */}
+              <div className="pt-3 border-t border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-xs sm:text-sm flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[16px] text-[#006398]">pin_drop</span>
+                      <span>Engineered Isolation Points (_Item)</span>
+                      <span className="text-red-500 font-bold">*</span>
+                    </h4>
+                    <p className="text-[10px] text-slate-500">
+                      Define at least one breaker, valve, or blank isolation point.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddIsoPoint}
+                    className="px-2.5 py-1 rounded text-[11px] font-bold bg-[#006398]/10 text-[#006398] hover:bg-[#006398]/20 transition flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-[13px]">add</span>
+                    <span>Add Point</span>
+                  </button>
+                </div>
+
+                <div className="space-y-2.5">
+                  {newIsoPoints.map((pt, idx) => (
+                    <div key={idx} className="p-3 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2 text-xs relative">
+                      <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/80">
+                        <span className="font-mono text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                          <span className="w-5 h-5 rounded-full bg-[#006398] text-white flex items-center justify-center text-[10px]">
+                            {idx + 1}
+                          </span>
+                          <span>Isolation Point #{idx + 1}</span>
+                        </span>
+                        {newIsoPoints.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveIsoPoint(idx)}
+                            className="text-rose-600 hover:text-rose-800 text-[11px] font-semibold flex items-center gap-0.5"
+                          >
+                            <span className="material-symbols-outlined text-[13px]">delete</span>
+                            <span>Remove</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div>
+                          <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">
+                            Point Tag / Identifier <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. MCC-01-BRK"
+                            value={pt.IsolationPoint}
+                            onChange={(e) => handleUpdateIsoPoint(idx, 'IsolationPoint', e.target.value)}
+                            className="ptw-input font-mono text-xs w-full uppercase"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Reference Type</label>
+                          <select
+                            value={pt.ReferenceType}
+                            onChange={(e) => handleUpdateIsoPoint(idx, 'ReferenceType', e.target.value as 'EQUI' | 'FLOC')}
+                            className="ptw-input text-xs w-full bg-white font-medium"
+                          >
+                            <option value="EQUI">Equipment (EQUI)</option>
+                            <option value="FLOC">Functional Location (FLOC)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">
+                            Reference ID <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. 10000045"
+                            value={pt.ReferenceId}
+                            onChange={(e) => handleUpdateIsoPoint(idx, 'ReferenceId', e.target.value)}
+                            className="ptw-input font-mono text-xs w-full"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                        <div>
+                          <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Isolation Type</label>
+                          <select
+                            value={pt.IsolType}
+                            onChange={(e) => handleUpdateIsoPoint(idx, 'IsolType', e.target.value)}
+                            className="ptw-input text-xs w-full bg-white font-medium"
+                          >
+                            {isolationTypes.map((t) => (
+                              <option key={t.Config_Code} value={t.Config_Code}>
+                                {t.Config_Desc} ({t.Config_Code})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Method</label>
+                          <select
+                            value={pt.IsolMethod}
+                            onChange={(e) => handleUpdateIsoPoint(idx, 'IsolMethod', e.target.value)}
+                            className="ptw-input text-xs w-full bg-white font-medium"
+                          >
+                            {isolMethods.map((m) => (
+                              <option key={m.Config_Code} value={m.Config_Code}>
+                                {m.Config_Desc} ({m.Config_Code})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">State</label>
+                          <select
+                            value={pt.IsolatedState}
+                            onChange={(e) => handleUpdateIsoPoint(idx, 'IsolatedState', e.target.value)}
+                            className="ptw-input text-xs w-full bg-white font-medium"
+                          >
+                            {isolatedStates.map((s) => (
+                              <option key={s.Config_Code} value={s.Config_Code}>
+                                {s.Config_Desc} ({s.Config_Code})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">
+                            Lock / Tag No <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. LT-1001"
+                            value={pt.LockTagNo}
+                            onChange={(e) => handleUpdateIsoPoint(idx, 'LockTagNo', e.target.value)}
+                            className="ptw-input font-mono text-xs w-full uppercase"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="pt-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleJumpToFullIsolationWorkspace}
+                  className="text-[11px] font-semibold text-[#006398] hover:text-[#004e78] hover:underline flex items-center gap-1 transition"
+                  title="Saves current draft and opens full Isolation Workspace"
+                >
+                  <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                  <span>Open in Full Isolation Workspace ↗</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateIsoModal(false)}
+                    disabled={isCreatingIso}
+                    className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isCreatingIso}
+                    className="px-4 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs shadow-2xs hover:shadow-xs transition flex items-center gap-1.5"
+                  >
+                    {isCreatingIso ? (
+                      <>
+                        <span className="material-symbols-outlined text-[15px] animate-spin">progress_activity</span>
+                        <span>Registering in SAP...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-[15px]">verified</span>
+                        <span>Register & Link in SAP</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

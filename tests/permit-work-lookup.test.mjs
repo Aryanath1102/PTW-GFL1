@@ -346,3 +346,48 @@ test('missing CSRF token blocks writes before a POST is sent', async () => {
     assert.equal(posts, 0);
   } finally { instance.defaults.adapter = adapter; odataClient.fetchCsrfToken = tokenFetch; }
 });
+
+test('blank reference permit create allows empty Aufnr/Qmnum/Auart/Qmtxt when opted in and posts CreatorComment', async () => {
+  const blankPermit = {
+    ...validPermit(),
+    Aufnr: '',
+    Qmnum: '',
+    Auart: '',
+    Qmart: '',
+    Qmtxt: '',
+    Qmdat: null,
+    PmBasicStartD: null,
+    Werks: '1002',
+    CreatorComment: 'Blank Permit (No SAP Order / Notification Ref)'
+  };
+
+  // Without explicit allowBlankReference option, missing order/notification still throws
+  assert.throws(() => preparePermitCreate(blankPermit), /Select a real SAP order or notification/);
+
+  // With allowBlankReference: true, blank references succeed while leaving Auart & Qmtxt blank
+  const body = preparePermitCreate(blankPermit, { allowBlankReference: true });
+  assert.equal(body.Aufnr, '');
+  assert.equal(body.Qmnum, '');
+  assert.equal(body.Auart, '');
+  assert.equal(body.Qmtxt, '');
+  assert.equal(body.Werks, '1002');
+  assert.equal(body.CreatorComment, 'Blank Permit (No SAP Order / Notification Ref)');
+
+  const original = odataClient.post;
+  try {
+    odataClient.post = async (entity, posted) => {
+      assert.equal(entity, 'PermitInfo');
+      assert.equal(posted.Aufnr, '');
+      assert.equal(posted.Qmnum, '');
+      assert.equal(posted.Auart, '');
+      assert.equal(posted.Qmtxt, '');
+      assert.equal(posted.Werks, '1002');
+      return { data: { Permit_No: 'PTW0099901', Status: 'CRTD' } };
+    };
+    const res = await permitCreateApi.createPermitDeepInsert(blankPermit, { allowBlankReference: true });
+    assert.equal(res.Permit_No, 'PTW0099901');
+  } finally {
+    odataClient.post = original;
+  }
+});
+

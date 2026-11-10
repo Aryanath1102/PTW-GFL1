@@ -7,7 +7,13 @@ const result = await build({
   stdin: {
     contents: `
       export { FALLBACK_CONFIG_DATA, configApi } from './src/core/api/modules/config.api';
-      export { formatExecutionTarget } from './src/features/permits/PermitCreateModule';
+      export {
+        formatExecutionTarget,
+        parseCombinedExecutionTarget,
+        normalizeWorkCenterTarget,
+        isWorkCenterExecutionTarget,
+        isSubPlantRequiredForExecutionTarget
+      } from './src/features/permits/PermitCreateModule';
       export { preparePermitCreate } from './src/core/api/modules/permitCreate.validation';
     `,
     resolveDir: process.cwd(),
@@ -27,7 +33,15 @@ new Function('require', 'module', 'exports', result.outputFiles[0].text)(
   compiled.exports
 );
 
-const { FALLBACK_CONFIG_DATA, formatExecutionTarget, preparePermitCreate } = compiled.exports;
+const {
+  FALLBACK_CONFIG_DATA,
+  formatExecutionTarget,
+  parseCombinedExecutionTarget,
+  normalizeWorkCenterTarget,
+  isWorkCenterExecutionTarget,
+  isSubPlantRequiredForExecutionTarget,
+  preparePermitCreate
+} = compiled.exports;
 
 const createValidPayload = (execDept) => ({
   ExecDept: execDept,
@@ -171,3 +185,70 @@ test('preparePermitCreate accepts formatted ExecDept plant - department and enfo
   const over40 = 'A'.repeat(41);
   assert.throws(() => preparePermitCreate(createValidPayload(over40)), /ExecDept must be at most 40 characters/);
 });
+
+test('Work Center (Arbpl) description works as execution target alongside dropdown override', () => {
+  const wcDesc = '  ELECTRICAL CMS 1  ';
+  const normalized = normalizeWorkCenterTarget(wcDesc);
+  assert.equal(normalized, 'ELECTRICAL CMS 1');
+
+  // Clamps descriptions longer than SAP 40-char ExecDept limit
+  assert.equal(normalizeWorkCenterTarget('W'.repeat(55)).length, 40);
+
+  // Detects active Work Center target cleanly
+  assert.equal(isWorkCenterExecutionTarget('ELECTRICAL CMS 1', '', wcDesc), true);
+  assert.equal(isWorkCenterExecutionTarget('ELECTRICAL', 'CMS PLANT 1', wcDesc), false);
+  assert.equal(isWorkCenterExecutionTarget('ELECTRICAL', '', wcDesc), false);
+
+  // Exempts Work Center target from mandatory sub-plant prompt while still enforcing it for raw dropdown depts
+  assert.equal(isSubPlantRequiredForExecutionTarget({
+    execDept: 'ELECTRICAL CMS 1',
+    execPlant: '',
+    workCenterDesc: wcDesc,
+    filteredPlantCount: 29
+  }), false);
+
+  assert.equal(isSubPlantRequiredForExecutionTarget({
+    execDept: 'ELECTRICAL',
+    execPlant: '',
+    workCenterDesc: wcDesc,
+    filteredPlantCount: 29
+  }), true);
+
+  assert.equal(isSubPlantRequiredForExecutionTarget({
+    execDept: 'ELECTRICAL',
+    execPlant: 'CMS PLANT 1',
+    workCenterDesc: wcDesc,
+    filteredPlantCount: 29
+  }), false);
+
+  // Revision mode preserves existing direct ExecDept target without falsely prompting for sub-plant
+  assert.equal(isSubPlantRequiredForExecutionTarget({
+    execDept: 'ELECTRICAL CMS 1',
+    execPlant: '',
+    workCenterDesc: undefined,
+    filteredPlantCount: 29,
+    revisionExecDept: 'ELECTRICAL CMS 1'
+  }), false);
+
+  // Payload serialization accepts Work Center description directly
+  const formatted = formatExecutionTarget('', normalized);
+  assert.equal(formatted, 'ELECTRICAL CMS 1');
+  const body = preparePermitCreate(createValidPayload(formatted));
+  assert.equal(body.ExecDept, 'ELECTRICAL CMS 1');
+});
+
+test('parseCombinedExecutionTarget preserves plant names containing hyphens such as CPP - COAL', () => {
+  assert.deepEqual(parseCombinedExecutionTarget('CMS PLANT 1 - ELECTRICAL'), {
+    plant: 'CMS PLANT 1',
+    dept: 'ELECTRICAL'
+  });
+  assert.deepEqual(parseCombinedExecutionTarget('CPP - COAL - ELECTRICAL'), {
+    plant: 'CPP - COAL',
+    dept: 'ELECTRICAL'
+  });
+  assert.deepEqual(parseCombinedExecutionTarget('ELECTRICAL CMS 1'), {
+    plant: '',
+    dept: 'ELECTRICAL CMS 1'
+  });
+});
+

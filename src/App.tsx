@@ -178,6 +178,7 @@ export const App: React.FC = () => {
               setRevisionPermit(null);
               setSelectedModule(null);
             }}
+            onNavigateModule={(modId: any) => setSelectedModule(modId)}
             revisionPermit={revisionPermit}
           />
         ) : selectedModule === 'permit-details' ? (
